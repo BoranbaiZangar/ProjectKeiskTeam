@@ -13,16 +13,25 @@ public class Level {
     public static final int TILE_SIZE = 40;
     private List<Tile> tiles = new ArrayList<>();
 
+    // Изображения тайлов
     private Image platformImg;
+    private Image spikeImg;
+    private Image iceImg;
+    private Image vanishImg;
 
+    // Координаты старта и портала
     private int startX = -1, startY = -1;
     private int portalX = -1, portalY = -1;
 
     public Level(String filename) {
         try {
+            // Загрузка изображений
             platformImg = new Image(getClass().getResourceAsStream("/images/tileset.png"));
-            BufferedReader reader = new BufferedReader(new FileReader("src/resources/levels/" + filename));
+            spikeImg = new Image(getClass().getResourceAsStream("/images/spikes.png"));
+            iceImg = new Image(getClass().getResourceAsStream("/images/ice.png"));
+            vanishImg = new Image(getClass().getResourceAsStream("/images/platform_vanish.png"));
 
+            BufferedReader reader = new BufferedReader(new FileReader("src/resources/levels/" + filename));
             String line;
             int y = 0;
 
@@ -36,6 +45,15 @@ public class Level {
                         case '#':
                             tiles.add(new Tile(px, py, Tile.Type.PLATFORM, platformImg));
                             break;
+                        case '^':
+                            tiles.add(new Tile(px, py, Tile.Type.SPIKES, spikeImg));
+                            break;
+                        case '~':
+                            tiles.add(new Tile(px, py, Tile.Type.ICE, iceImg));
+                            break;
+                        case '=':
+                            tiles.add(new Tile(px, py, Tile.Type.DISAPPEARING, vanishImg));
+                            break;
                         case 'S':
                             startX = px;
                             startY = py;
@@ -45,7 +63,7 @@ public class Level {
                             portalY = py;
                             break;
                         default:
-                            // Пусто или будущие символы
+                            // Пустой блок или неподдерживаемый символ
                             break;
                     }
                 }
@@ -53,14 +71,16 @@ public class Level {
             }
 
             reader.close();
-
         } catch (Exception e) {
+            System.err.println("Ошибка при загрузке уровня: " + filename);
             e.printStackTrace();
         }
     }
 
+    // Рендер всех тайлов
     public void render(GraphicsContext gc) {
         for (Tile tile : tiles) {
+            tile.update();
             tile.render(gc);
         }
     }
