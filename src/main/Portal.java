@@ -18,7 +18,7 @@ public class Portal {
         this.x = x;
         this.y = y;
 
-        portalImage = new Image(getClass().getResourceAsStream("/images/portal.jpg"));
+        portalImage = new Image(getClass().getResourceAsStream("/images/portal.png"));
         teleportSound = new AudioClip(getClass().getResource("/sounds/teleport.wav").toString());
     }
 

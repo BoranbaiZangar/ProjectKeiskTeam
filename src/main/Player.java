@@ -4,6 +4,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.media.AudioClip;
+
 import java.util.List;
 import java.util.Set;
 
@@ -22,16 +23,16 @@ public class Player {
     private final double GRAVITY = 0.8;
 
     private final double GROUND_Y;
-    private List<String> levelData;
+    private List<Tile> tiles;
 
     private Image playerImage;
     private AudioClip jumpSound;
 
-    public Player(double startX, double startY, double groundY, List<String> levelData) {
+    public Player(double startX, double startY, double groundY, List<Tile> tiles) {
         this.x = startX;
         this.y = startY;
         this.GROUND_Y = groundY;
-        this.levelData = levelData;
+        this.tiles = tiles;
 
         playerImage = new Image(getClass().getResourceAsStream("/images/player.png"));
         jumpSound = new AudioClip(getClass().getResource("/sounds/jump.wav").toString());
@@ -49,7 +50,7 @@ public class Player {
         if ((keysPressed.contains(KeyCode.UP) || keysPressed.contains(KeyCode.W) || keysPressed.contains(KeyCode.SPACE)) && canJump) {
             velocityY = JUMP_FORCE;
             canJump = false;
-            jumpSound.play(); // звук прыжка
+            jumpSound.play();
         }
 
         velocityY += GRAVITY;
@@ -76,20 +77,17 @@ public class Player {
     }
 
     private boolean isColliding(double nextX, double nextY) {
-        int leftTile = (int) (nextX / Level.TILE_SIZE);
-        int rightTile = (int) ((nextX + width - 1) / Level.TILE_SIZE);
-        int topTile = (int) (nextY / Level.TILE_SIZE);
-        int bottomTile = (int) ((nextY + height - 1) / Level.TILE_SIZE);
+        for (Tile tile : tiles) {
+            if (tile.getType() == Tile.Type.PLATFORM) {
+                double tx = tile.getX();
+                double ty = tile.getY();
 
-        for (int y = topTile; y <= bottomTile; y++) {
-            if (y < 0 || y >= levelData.size()) continue;
-            String line = levelData.get(y);
-            for (int x = leftTile; x <= rightTile; x++) {
-                if (x < 0 || x >= line.length()) continue;
-                char tile = line.charAt(x);
-                if (tile == '#') {
-                    return true;
-                }
+                boolean overlap = nextX + width > tx &&
+                        nextX < tx + Level.TILE_SIZE &&
+                        nextY + height > ty &&
+                        nextY < ty + Level.TILE_SIZE;
+
+                if (overlap) return true;
             }
         }
         return false;
