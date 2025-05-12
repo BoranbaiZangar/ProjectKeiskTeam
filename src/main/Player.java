@@ -22,26 +22,34 @@ public class Player {
     private final double JUMP_FORCE = -12;
     private final double GRAVITY = 0.5;
 
-    private final double GROUND_Y;
+    private final double GROUND_Y = Main.HEIGHT - height;
     private List<Tile> tiles;
 
     private Image playerImage;
     private AudioClip jumpSound;
+    private boolean isJumpSoundMuted = false;
+    private Image bulletImage;  // Для пули
+    private Image laserImage;   // Для лазера
+    private Image rocketImage;  // Для ракеты
 
+    private ProjectileManager projectileManager;
     private double velocityX = 0;
     private boolean onIce = false;
 
-
-    public Player(double startX, double startY, double groundY, List<Tile> tiles) {
+    // Конструктор с параметрами
+    public Player(double startX, double startY, List<Tile> tiles,
+                  Image playerImage, Image bulletImage, Image laserImage, Image rocketImage) {
         this.x = startX;
         this.y = startY;
-        this.GROUND_Y = groundY;
         this.tiles = tiles;
-
-        playerImage = new Image(getClass().getResourceAsStream("/images/player.png"));
-        jumpSound = new AudioClip(getClass().getResource("/sounds/jump.wav").toString());
+        this.playerImage = playerImage;
+        this.bulletImage = bulletImage;
+        this.laserImage = laserImage;
+        this.rocketImage = rocketImage;
+        this.projectileManager = new ProjectileManager();
     }
 
+    // Обновление состояния игрока
     public void update(Set<KeyCode> keysPressed) {
         // Управление влево/вправо
         if (keysPressed.contains(KeyCode.LEFT) || keysPressed.contains(KeyCode.A)) {
@@ -56,6 +64,8 @@ public class Player {
             if (Math.abs(velocityX) < 0.1) velocityX = 0;
         }
 
+        projectileManager.updateProjectiles();  // Обновляем снаряды
+
         // Прыжок
         if ((keysPressed.contains(KeyCode.UP) || keysPressed.contains(KeyCode.W) || keysPressed.contains(KeyCode.SPACE)) && canJump) {
             velocityY = JUMP_FORCE;
@@ -63,7 +73,7 @@ public class Player {
             jumpSound.play();
         }
 
-        velocityY += GRAVITY;
+        velocityY += GRAVITY;  // Гравитация
 
         // Сброс флага льда
         onIce = false;
@@ -96,8 +106,6 @@ public class Player {
                     tile.triggerDisappear();
                 }
             }
-
-
         }
 
         // Движение
@@ -124,12 +132,19 @@ public class Player {
 
         if (y < 0) y = 0;
         if (y + height > Main.HEIGHT) y = Main.HEIGHT - height;
-
     }
 
+    // Метод для стрельбы
+    public void shoot() {
+        // Добавляем пулю в менеджер снарядов
+        projectileManager.addProjectile(new Bullet(x + playerImage.getWidth() / 2 - bulletImage.getWidth() / 2, y, bulletImage));
+    }
 
-
-
+    // Метод для отрисовки игрока и снарядов
+    public void render(GraphicsContext gc) {
+        gc.drawImage(playerImage, x, y, width, height);  // Отрисовываем игрока
+        projectileManager.render(gc);  // Отрисовываем все снаряды
+    }
     private boolean isColliding(double nextX, double nextY) {
         for (Tile tile : tiles) {
             Tile.Type type = tile.getType();
@@ -147,12 +162,15 @@ public class Player {
         }
         return false;
     }
-
-
-    public void render(GraphicsContext gc) {
-        gc.drawImage(playerImage, x, y, width, height);
+    public void setJumpSoundMuted(boolean muted) {
+        this.isJumpSoundMuted = muted;
+        if (jumpSound != null) {
+            jumpSound.setVolume(muted ? 0 : 1.0);
+        }
     }
 
+
+    // Геттеры для получения позиции и размеров игрока
     public double getX() { return x; }
     public double getY() { return y; }
     public double getWidth() { return width; }

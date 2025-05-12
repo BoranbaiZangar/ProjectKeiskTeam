@@ -1,0 +1,47 @@
+package main;
+
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
+
+public abstract class Projectile {
+
+    protected double x, y;
+    protected double speed;
+    protected Image image;
+
+    public Projectile(double startX, double startY, double speed, Image image) {
+        this.x = startX;
+        this.y = startY;
+        this.speed = speed;
+        this.image = image;
+    }
+
+    // Обновление позиции снаряда
+    public void update() {
+        y -= speed;  // По умолчанию пуля будет двигаться вверх
+    }
+
+    // Рендеринг снаряда
+    public void render(GraphicsContext gc) {
+        gc.drawImage(image, x, y);
+    }
+
+    // Проверка столкновений с объектами
+    public boolean intersects(Tile tile) {
+        return tile.getBounds().intersects(x, y, image.getWidth(), image.getHeight());
+    }
+
+    // Получаем координаты снаряда
+    public double getX() {
+        return x;
+    }
+
+    public double getY() {
+        return y;
+    }
+
+    // Удаление снаряда из списка, если он выходит за пределы экрана
+    public boolean isOutOfBounds(double screenHeight) {
+        return y < 0 || y > screenHeight;
+    }
+}

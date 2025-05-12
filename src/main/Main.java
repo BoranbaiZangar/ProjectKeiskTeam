@@ -25,12 +25,14 @@ public class Main extends Application {
     public static final int HEIGHT = 600;
     private static final int DEATH_DELAY = 800;
 
+    private boolean isMusicMuted = false;  // Для фонової музыки
+    private boolean isSoundMuted = false;  // Для звуков игры (например, прыжка)
 
     private final Set<KeyCode> keysPressed = new HashSet<>();
     private Player player;
     private Level level;
     private Portal portal;
-
+    private boolean isGamePaused = false; // Флаг паузы
     private Image backgroundImage;
     private MediaPlayer backgroundMusic;
 
@@ -43,15 +45,21 @@ public class Main extends Application {
     private int lives = 3;
 
     private Scene menuScene;
+    private Scene settingsScene;
+    private Image laserImage;   // Изображение лазера
+    private Image rocketImage;  // Изображение ракеты
 
+    private Image playerImage;  // Изображение игрока
+    private Image bulletImage;
 
     @Override
-
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Space Escape");
         primaryStage.setResizable(false);
-
+        loadLevel(levelIndex);
         // Заранее загружаем фон и музыку
+        playerImage = new Image(getClass().getResourceAsStream("/images/player.png"));
+        bulletImage = new Image(getClass().getResourceAsStream("/images/bullet.png"));
         backgroundImage = new Image(getClass().getResourceAsStream("/images/background.png"));
         Media media = new Media(getClass().getResource("/sounds/background-music.mp3").toString());
         backgroundMusic = new MediaPlayer(media);
@@ -63,11 +71,9 @@ public class Main extends Application {
         primaryStage.show();
     }
 
-
-
     private void loadLevel(int index) {
         level = new Level(levelNames.get(index));
-        player = new Player(level.getStartX(), level.getStartY(), HEIGHT - 50, level.getTiles());
+        player = new Player(100, 500, level.getTiles(), playerImage, bulletImage, laserImage, rocketImage);  // Передаем все 4 изображения
         portal = new Portal(level.getPortalX(), level.getPortalY());
     }
 
@@ -110,7 +116,6 @@ public class Main extends Application {
         gc.setFill(Color.WHITE);
         gc.setFont(javafx.scene.text.Font.font(20));
         gc.fillText("❤️ Жизни: " + lives, 10, 25);
-
     }
 
     private void stopGameLoop() {
@@ -142,7 +147,6 @@ public class Main extends Application {
         }
     }
 
-
     private void showWinScreen() {
         Stage winStage = new Stage();
         winStage.setTitle("Победа!");
@@ -160,19 +164,35 @@ public class Main extends Application {
         restartButton.setLayoutX(80);
         restartButton.setLayoutY(150);
         restartButton.setOnAction(e -> {
-            winStage.close(); // или loseStage.close();
+            winStage.close();
             restartGame();
         });
-        ;
 
         Button exitButton = new Button("🚪 Выйти");
         exitButton.setLayoutX(230);
         exitButton.setLayoutY(150);
         exitButton.setOnAction(e -> System.exit(0));
 
-        root.getChildren().addAll(winText, restartButton, exitButton);
+        Button soundButton = new Button(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
+        soundButton.setLayoutX(80);
+        soundButton.setLayoutY(270);
+        soundButton.setOnAction(e -> {
+            isSoundMuted = !isSoundMuted;
+            if (isSoundMuted) {
+                backgroundMusic.setMute(true);
+                player.setJumpSoundMuted(true);
+            } else {
+                backgroundMusic.setMute(false);
+                player.setJumpSoundMuted(false);
+            }
+            soundButton.setText(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
+        });
+
+        root.getChildren().addAll(winText, restartButton, exitButton, soundButton);
         winStage.setScene(scene);
         winStage.show();
+
+
     }
 
     private void showLoseScreen() {
@@ -192,10 +212,9 @@ public class Main extends Application {
         restartButton.setLayoutX(80);
         restartButton.setLayoutY(150);
         restartButton.setOnAction(e -> {
-            loseStage.close(); // или loseStage.close();
+            loseStage.close();
             restartGame();
         });
-
 
         Button exitButton = new Button("🚪 Выйти");
         exitButton.setLayoutX(230);
@@ -215,27 +234,43 @@ public class Main extends Application {
         loadLevel(levelIndex);
         gameLoop.start();
     }
+
     private Scene createGameScene(Stage stage) {
         Group root = new Group();
         Scene scene = new Scene(root);
         Canvas canvas = new Canvas(WIDTH, HEIGHT);
         root.getChildren().add(canvas);
-        gc = canvas.getGraphicsContext2D();
+        gc = canvas.getGraphicsContext2D();  // Инициализация GraphicsContext
 
         scene.setOnKeyPressed(e -> keysPressed.add(e.getCode()));
         scene.setOnKeyReleased(e -> keysPressed.remove(e.getCode()));
 
         loadLevel(levelIndex);
 
+        // Добавляем кнопку паузы в правый верхний угол
+        Button pauseButton = new Button("⏸ Пауза");
+        pauseButton.setLayoutX(WIDTH - 90);  // Располагаем кнопку на 90 пикселей влево от правого края
+        pauseButton.setLayoutY(10);  // Небольшой отступ от верхнего края
+        pauseButton.setOnAction(e -> {
+            isGamePaused = !isGamePaused;  // Переключаем состояние паузы
+            pauseButton.setText(isGamePaused ? "▶ Возобновить" : "⏸ Пауза");
+        });
+
+        root.getChildren().add(pauseButton);  // Добавляем кнопку паузы в игровую сцену
+
+        // Создаем игровой цикл
         gameLoop = new AnimationTimer() {
             @Override public void handle(long now) {
-                update();
-                render();
+                if (!isGamePaused) {  // Если игра не на паузе
+                    update();
+                    render();
+                }
             }
         };
 
         return scene;
     }
+
 
     private void showMainMenu(Stage stage) {
         Group root = new Group();
@@ -271,14 +306,81 @@ public class Main extends Application {
         exitButton.setLayoutY(270);
         exitButton.setOnAction(e -> System.exit(0));
 
-        root.getChildren().addAll(title, startButton, exitButton);
+        // Кнопка Настроек
+        Button settingsButton = new Button("⚙ Настройки");
+        settingsButton.setLayoutX(330);
+        settingsButton.setLayoutY(320);
+        settingsButton.setOnAction(e -> showSettingsMenu(stage));
+
+        root.getChildren().addAll(title, startButton, exitButton, settingsButton);
         stage.setScene(menuScene);
+
+
+    }
+
+    private void showSettingsMenu(Stage stage) {
+        Group root = new Group();
+        settingsScene = new Scene(root, WIDTH, HEIGHT);
+        Canvas canvas = new Canvas(WIDTH, HEIGHT);
+        root.getChildren().add(canvas);
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+
+        // Фон
+        gc.setFill(Color.BLACK);
+        gc.fillRect(0, 0, WIDTH, HEIGHT);
+
+        Text settingsTitle = new Text("Настройки");
+        settingsTitle.setFill(Color.WHITE);
+        settingsTitle.setStyle("-fx-font-size: 30px;");
+        settingsTitle.setX(300);
+        settingsTitle.setY(100);
+
+        // Кнопка для звука
+        Button soundButton = new Button(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
+        soundButton.setLayoutX(300);
+        soundButton.setLayoutY(150);
+        soundButton.setOnAction(e -> {
+            isSoundMuted = !isSoundMuted;
+            if (isSoundMuted) {
+                backgroundMusic.setMute(true);
+                if (player != null) {  // Проверяем, что player не равен null
+                    player.setJumpSoundMuted(true);
+                }
+            } else {
+                backgroundMusic.setMute(false);
+                if (player != null) {
+                    player.setJumpSoundMuted(false);
+                }
+            }
+            soundButton.setText(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
+        });
+
+        // Кнопка для музыки
+        Button musicButton = new Button(isMusicMuted ? "🎶 Включить музыку" : "🔇 Выключить музыку");
+        musicButton.setLayoutX(300);
+        musicButton.setLayoutY(200);
+        musicButton.setOnAction(e -> {
+            isMusicMuted = !isMusicMuted;
+            if (isMusicMuted) {
+                backgroundMusic.setMute(true);
+            } else {
+                backgroundMusic.setMute(false);
+            }
+            musicButton.setText(isMusicMuted ? "🎶 Включить музыку" : "🔇 Выключить музыку");
+        });
+
+        // Кнопка возврата в меню
+        Button backButton = new Button("↩ Назад");
+        backButton.setLayoutX(350);
+        backButton.setLayoutY(270);
+        backButton.setOnAction(e -> stage.setScene(menuScene));
+
+        root.getChildren().addAll(settingsTitle, soundButton, musicButton, backButton);
+        stage.setScene(settingsScene);
     }
 
 
-
     public static void main(String[] args) {
-        main.utils.LevelGenerator.generateLevel("level4.txt");
         launch(args);
     }
 }

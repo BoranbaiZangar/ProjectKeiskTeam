@@ -19,6 +19,8 @@ public class Level {
     private Image iceImg;
     private Image vanishImg;
 
+    private boolean completed = false;
+
     // Координаты старта и портала
     private int startX = -1, startY = -1;
     private int portalX = -1, portalY = -1;
@@ -38,9 +40,10 @@ public class Level {
             while ((line = reader.readLine()) != null) {
                 for (int x = 0; x < line.length(); x++) {
                     char ch = line.charAt(x);
-                    int px = x * TILE_SIZE;
-                    int py = y * TILE_SIZE;
+                    int px = x * TILE_SIZE; // Умножаем индекс на размер плитки
+                    int py = y * TILE_SIZE; // Умножаем на размер по оси Y
 
+                    // Генерация тайлов в зависимости от символа
                     switch (ch) {
                         case '#':
                             tiles.add(new Tile(px, py, Tile.Type.PLATFORM, platformImg));
@@ -63,7 +66,6 @@ public class Level {
                             portalY = py;
                             break;
                         default:
-                            // Пустой блок или неподдерживаемый символ
                             break;
                     }
                 }
@@ -76,6 +78,14 @@ public class Level {
             e.printStackTrace();
         }
     }
+    public void advanceToNextLevel() {
+        // Здесь ты можешь обновить состояние игры, загрузить новый уровень
+        completed = true;  // Устанавливаем, что уровень завершен
+        System.out.println("Переход на следующий уровень!");
+        // Тут может быть логика загрузки следующего уровня, например:
+        // levelIndex++;  // Увеличиваем индекс уровня
+        // loadLevel(levelIndex);  // Загружаем новый уровень
+    }
 
     // Рендер всех тайлов
     public void render(GraphicsContext gc) {
@@ -84,7 +94,9 @@ public class Level {
             tile.render(gc);
         }
     }
-
+    public boolean isCompleted() {
+        return completed;
+    }
     public List<Tile> getTiles() {
         return tiles;
     }

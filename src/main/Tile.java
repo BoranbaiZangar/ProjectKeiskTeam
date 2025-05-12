@@ -3,6 +3,7 @@ package main;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 
 public class Tile {
 
@@ -21,12 +22,15 @@ public class Tile {
 
     private boolean markedToDisappear = false;
     private long disappearStartTime = 0;
+    private double width, height;
 
     public Tile(int x, int y, Type type, Image image) {
         this.x = x;
         this.y = y;
         this.type = type;
         this.image = image;
+        this.width = image.getWidth();  // Инициализация ширины на основе изображения
+        this.height = image.getHeight();
     }
 
     public void render(GraphicsContext gc) {
@@ -78,6 +82,9 @@ public class Tile {
                 px + pw > x &&
                 py < y + size &&
                 py + ph > y;
+    }
+    public Rectangle getBounds() {
+        return new Rectangle(x, y, width, height);
     }
 
     public Type getType() {
