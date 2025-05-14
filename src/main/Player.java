@@ -28,15 +28,17 @@ public class Player {
     private Image playerImage;
     private AudioClip jumpSound;
     private boolean isJumpSoundMuted = false;
-    private Image bulletImage;  // Для пули
-    private Image laserImage;   // Для лазера
-    private Image rocketImage;  // Для ракеты
+    private Image bulletImage;
+    private Image laserImage;
+    private Image rocketImage;
 
     private ProjectileManager projectileManager;
     private double velocityX = 0;
     private boolean onIce = false;
 
-    // Конструктор с параметрами
+    private boolean facingRight = true;
+
+
     public Player(double startX, double startY, List<Tile> tiles,
                   Image playerImage, Image bulletImage, Image laserImage, Image rocketImage) {
         this.x = startX;
@@ -47,33 +49,37 @@ public class Player {
         this.laserImage = laserImage;
         this.rocketImage = rocketImage;
         this.projectileManager = new ProjectileManager();
+        this.jumpSound = new AudioClip(getClass().getResource("/sounds/jump.wav").toString());
+        this.projectileManager.setTiles(this.tiles);
     }
 
-    // Обновление состояния игрока
+
     public void update(Set<KeyCode> keysPressed) {
         // Управление влево/вправо
         if (keysPressed.contains(KeyCode.LEFT) || keysPressed.contains(KeyCode.A)) {
             velocityX = -MOVE_SPEED;
+            facingRight = false;
         } else if (keysPressed.contains(KeyCode.RIGHT) || keysPressed.contains(KeyCode.D)) {
             velocityX = MOVE_SPEED;
+            facingRight = true;
         } else if (!onIce) {
-            velocityX = 0; // мгновенная остановка
+            velocityX = 0;
         } else {
-            // Если на льду, замедляем
+
             velocityX *= 0.95;
             if (Math.abs(velocityX) < 0.1) velocityX = 0;
         }
 
-        projectileManager.updateProjectiles();  // Обновляем снаряды
+        projectileManager.updateProjectiles();
 
-        // Прыжок
+
         if ((keysPressed.contains(KeyCode.UP) || keysPressed.contains(KeyCode.W) || keysPressed.contains(KeyCode.SPACE)) && canJump) {
             velocityY = JUMP_FORCE;
             canJump = false;
             jumpSound.play();
         }
 
-        velocityY += GRAVITY;  // Гравитация
+        velocityY += GRAVITY;
 
         // Сброс флага льда
         onIce = false;
@@ -136,8 +142,8 @@ public class Player {
 
     // Метод для стрельбы
     public void shoot() {
-        // Добавляем пулю в менеджер снарядов
-        projectileManager.addProjectile(new Bullet(x + playerImage.getWidth() / 2 - bulletImage.getWidth() / 2, y, bulletImage));
+        double offsetX = facingRight ? width : -20; // сместим старт пули перед игроком
+        projectileManager.addProjectile(new Bullet(x + offsetX, y + height / 2, facingRight, bulletImage));
     }
 
     // Метод для отрисовки игрока и снарядов

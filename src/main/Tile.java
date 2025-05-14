@@ -1,5 +1,6 @@
 package main;
 
+import javafx.geometry.Bounds;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
@@ -29,8 +30,8 @@ public class Tile {
         this.y = y;
         this.type = type;
         this.image = image;
-        this.width = image.getWidth();  // Инициализация ширины на основе изображения
-        this.height = image.getHeight();
+        this.width = size;  // Инициализация ширины на основе изображения
+        this.height = size;
     }
 
     public void render(GraphicsContext gc) {
@@ -83,9 +84,10 @@ public class Tile {
                 py < y + size &&
                 py + ph > y;
     }
-    public Rectangle getBounds() {
-        return new Rectangle(x, y, width, height);
+    public Bounds getBounds() {
+        return new Rectangle(x, y, width, height).getBoundsInLocal(); // ✅
     }
+
 
     public Type getType() {
         return type;
@@ -102,4 +104,5 @@ public class Tile {
     public double getSize() {
         return size;
     }
+
 }

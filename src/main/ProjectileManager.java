@@ -2,42 +2,54 @@ package main;
 
 import javafx.scene.canvas.GraphicsContext;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class ProjectileManager {
 
-    private List<Projectile> projectiles;
+    private final List<Projectile> projectiles = new ArrayList<>();
 
-    public ProjectileManager() {
-        projectiles = new ArrayList<>();
+    // 🔹 Ссылка на тайлы (платформы, стены)
+    private List<Tile> tiles;
+
+    public void setTiles(List<Tile> tiles) {
+        this.tiles = tiles;
     }
 
-    // Метод для добавления нового снаряда
-    public void addProjectile(Projectile projectile) {
-        projectiles.add(projectile);
+    public void addProjectile(Projectile p) {
+        projectiles.add(p);
     }
 
-    // Обновление всех снарядов
     public void updateProjectiles() {
-        List<Projectile> toRemove = new ArrayList<>();
-        for (Projectile projectile : projectiles) {
-            projectile.update();
-            if (projectile.isOutOfBounds(600)) {  // Проверяем, вышел ли снаряд за пределы экрана
-                toRemove.add(projectile);
+        Iterator<Projectile> iterator = projectiles.iterator();
+
+        while (iterator.hasNext()) {
+            Projectile p = iterator.next();
+            p.update();
+
+            // Удалить, если за пределами экрана
+            if (p.getX() < 0 || p.getX() > Main.WIDTH) {
+                iterator.remove();
+                continue;
+            }
+
+            // 🔥 Проверка на столкновение с платформой
+            if (tiles != null) {
+                for (Tile tile : tiles) {
+                    if (tile.getType() == Tile.Type.PLATFORM || tile.getType() == Tile.Type.ICE) {
+                        if (tile.getBounds().intersects(p.getBounds())) {
+                            iterator.remove(); // удаляем пулю при столкновении
+                            break;
+                        }
+                    }
+                }
             }
         }
-        projectiles.removeAll(toRemove);  // Убираем снаряды, которые вышли за пределы экрана
     }
 
-    // Рендеринг всех снарядов
     public void render(GraphicsContext gc) {
-        for (Projectile projectile : projectiles) {
-            projectile.render(gc);
+        for (Projectile p : projectiles) {
+            p.render(gc);
         }
-    }
-
-    // Получение списка пуль
-    public List<Projectile> getProjectiles() {
-        return projectiles;
     }
 }

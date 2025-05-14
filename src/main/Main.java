@@ -59,6 +59,9 @@ public class Main extends Application {
         loadLevel(levelIndex);
         // Заранее загружаем фон и музыку
         playerImage = new Image(getClass().getResourceAsStream("/images/player.png"));
+        Image playerRight = new Image(getClass().getResourceAsStream("/images/player_right.png"));
+        Image playerLeft = new Image(getClass().getResourceAsStream("/images/player_left.png"));
+
         bulletImage = new Image(getClass().getResourceAsStream("/images/bullet.png"));
         backgroundImage = new Image(getClass().getResourceAsStream("/images/background.png"));
         Media media = new Media(getClass().getResource("/sounds/background-music.mp3").toString());
@@ -242,7 +245,14 @@ public class Main extends Application {
         root.getChildren().add(canvas);
         gc = canvas.getGraphicsContext2D();  // Инициализация GraphicsContext
 
-        scene.setOnKeyPressed(e -> keysPressed.add(e.getCode()));
+        scene.setOnKeyPressed(e -> {
+            keysPressed.add(e.getCode());
+            if (e.getCode() == KeyCode.E) {
+                player.shoot();  // 👉 игрок стреляет
+            }
+        });
+
+
         scene.setOnKeyReleased(e -> keysPressed.remove(e.getCode()));
 
         loadLevel(levelIndex);
@@ -254,7 +264,9 @@ public class Main extends Application {
         pauseButton.setOnAction(e -> {
             isGamePaused = !isGamePaused;  // Переключаем состояние паузы
             pauseButton.setText(isGamePaused ? "▶ Возобновить" : "⏸ Пауза");
+
         });
+        pauseButton.setFocusTraversable(false);
 
         root.getChildren().add(pauseButton);  // Добавляем кнопку паузы в игровую сцену
 

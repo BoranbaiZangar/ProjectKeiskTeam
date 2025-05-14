@@ -1,7 +1,10 @@
 package main;
 
+import javafx.geometry.Bounds;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
+import javafx.scene.shape.Rectangle;
+
 
 public abstract class Projectile {
 
@@ -44,4 +47,8 @@ public abstract class Projectile {
     public boolean isOutOfBounds(double screenHeight) {
         return y < 0 || y > screenHeight;
     }
+    public Bounds getBounds() {
+        return new Rectangle(x, y, 8, 8).getBoundsInLocal(); // ✅
+    }
+
 }
