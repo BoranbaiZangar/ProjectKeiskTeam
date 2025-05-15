@@ -12,6 +12,8 @@ public abstract class Projectile {
     protected double speed;
     protected Image image;
 
+    protected double width = 10;
+    protected double height = 10;
     public Projectile(double startX, double startY, double speed, Image image) {
         this.x = startX;
         this.y = startY;
@@ -48,7 +50,7 @@ public abstract class Projectile {
         return y < 0 || y > screenHeight;
     }
     public Bounds getBounds() {
-        return new Rectangle(x, y, 8, 8).getBoundsInLocal(); // ✅
+        return new Rectangle(x, y, width, height).getBoundsInLocal(); // ✅
     }
 
 }

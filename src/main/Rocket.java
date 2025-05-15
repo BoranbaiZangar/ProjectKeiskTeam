@@ -1,15 +1,25 @@
 package main;
 
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 
 public class Rocket extends Projectile {
 
-    public Rocket(double startX, double startY, Image rocketImage) {
-        super(startX, startY, 3, rocketImage);  // 3 — скорость ракеты
+
+
+    public Rocket(double x, double y, boolean facingRight, Image image) {
+        super(x, y, facingRight ? 3 : -3, image);
+        this.width = 27;
+        this.height = 25;// медленнее
     }
 
     @Override
     public void update() {
-        super.update();  // Ракета движется вверх
+        x += speed;
+    }
+
+    @Override
+    public void render(GraphicsContext gc) {
+        gc.drawImage(image, x, y, width, height); // чуть крупнее пули
     }
 }

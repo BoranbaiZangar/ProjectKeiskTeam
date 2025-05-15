@@ -38,13 +38,21 @@ public class Player {
 
     private boolean facingRight = true;
 
+    private Image playerImageRight;
+    private Image playerImageLeft;
+    private Image currentPlayerImage;
+
 
     public Player(double startX, double startY, List<Tile> tiles,
-                  Image playerImage, Image bulletImage, Image laserImage, Image rocketImage) {
+                   Image bulletImage, Image laserImage, Image rocketImage,
+                  Image playerImageLeft, Image playerImageRight) {
         this.x = startX;
         this.y = startY;
         this.tiles = tiles;
-        this.playerImage = playerImage;
+        this.playerImageRight = playerImageRight;
+        this.playerImageLeft = playerImageLeft;
+        this.currentPlayerImage = playerImageRight;
+//
         this.bulletImage = bulletImage;
         this.laserImage = laserImage;
         this.rocketImage = rocketImage;
@@ -59,9 +67,11 @@ public class Player {
         if (keysPressed.contains(KeyCode.LEFT) || keysPressed.contains(KeyCode.A)) {
             velocityX = -MOVE_SPEED;
             facingRight = false;
+            currentPlayerImage = playerImageLeft;
         } else if (keysPressed.contains(KeyCode.RIGHT) || keysPressed.contains(KeyCode.D)) {
             velocityX = MOVE_SPEED;
             facingRight = true;
+            currentPlayerImage = playerImageRight;
         } else if (!onIce) {
             velocityX = 0;
         } else {
@@ -146,9 +156,18 @@ public class Player {
         projectileManager.addProjectile(new Bullet(x + offsetX, y + height / 2, facingRight, bulletImage));
     }
 
+    public void shootRocket() {
+        projectileManager.addProjectile(new Rocket(x + (facingRight ? width : -14), y + height / 2, facingRight, rocketImage));
+    }
+
+    public void shootLaser() {
+        projectileManager.addProjectile(new Laser(x + (facingRight ? width : -6), y + height / 2, facingRight, laserImage));
+    }
+
+
     // Метод для отрисовки игрока и снарядов
     public void render(GraphicsContext gc) {
-        gc.drawImage(playerImage, x, y, width, height);  // Отрисовываем игрока
+        gc.drawImage(currentPlayerImage, x, y, width, height);  // Отрисовываем игрока
         projectileManager.render(gc);  // Отрисовываем все снаряды
     }
     private boolean isColliding(double nextX, double nextY) {

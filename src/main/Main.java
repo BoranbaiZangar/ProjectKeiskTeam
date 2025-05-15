@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
+import javafx.scene.media.AudioClip;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
@@ -52,6 +53,10 @@ public class Main extends Application {
     private Image playerImage;  // Изображение игрока
     private Image bulletImage;
 
+    private Image playerRight;
+    private Image playerLeft;
+    private AudioClip jumpSound;
+
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Space Escape");
@@ -59,8 +64,14 @@ public class Main extends Application {
         loadLevel(levelIndex);
         // Заранее загружаем фон и музыку
         playerImage = new Image(getClass().getResourceAsStream("/images/player.png"));
-        Image playerRight = new Image(getClass().getResourceAsStream("/images/player_right.png"));
-        Image playerLeft = new Image(getClass().getResourceAsStream("/images/player_left.png"));
+//        bulletImage = new Image(getClass().getResourceAsStream("/images/bullet.png"));
+        playerRight = new Image(getClass().getResourceAsStream("/images/player_right.png"));
+        playerLeft = new Image(getClass().getResourceAsStream("/images/player_left.png"));
+
+        rocketImage = new Image(getClass().getResourceAsStream("/images/rocket.png"));
+        laserImage = new Image(getClass().getResourceAsStream("/images/laser.png"));
+        jumpSound = new AudioClip(getClass().getResource("/sounds/jump.wav").toString());
+
 
         bulletImage = new Image(getClass().getResourceAsStream("/images/bullet.png"));
         backgroundImage = new Image(getClass().getResourceAsStream("/images/background.png"));
@@ -76,7 +87,10 @@ public class Main extends Application {
 
     private void loadLevel(int index) {
         level = new Level(levelNames.get(index));
-        player = new Player(100, 500, level.getTiles(), playerImage, bulletImage, laserImage, rocketImage);  // Передаем все 4 изображения
+        player = new Player(100, 500, level.getTiles(),// текущий спрайт
+                bulletImage, laserImage, rocketImage,
+                playerLeft, playerRight);         // направления
+        // Передаем все 4 изображения
         portal = new Portal(level.getPortalX(), level.getPortalY());
     }
 
@@ -247,10 +261,14 @@ public class Main extends Application {
 
         scene.setOnKeyPressed(e -> {
             keysPressed.add(e.getCode());
-            if (e.getCode() == KeyCode.E) {
-                player.shoot();  // 👉 игрок стреляет
+
+            switch (e.getCode()) {
+                case F -> player.shoot();        // обычная пуля
+                case R -> player.shootRocket();  // ракета
+                case Q -> player.shootLaser();   // лазер
             }
         });
+
 
 
         scene.setOnKeyReleased(e -> keysPressed.remove(e.getCode()));

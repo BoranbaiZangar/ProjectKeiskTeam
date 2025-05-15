@@ -11,6 +11,8 @@ public class Bullet extends Projectile {
     public Bullet(double x, double y, boolean facingRight, Image image) {
         super(x, y, facingRight ? 6 : -6, image); // передаем dx в родителя
         this.dx = facingRight ? 6 : -6;
+        this.width = 10;
+        this.height = 10;
     }
 
     @Override
@@ -20,6 +22,6 @@ public class Bullet extends Projectile {
 
     @Override
     public void render(GraphicsContext gc) {
-        gc.drawImage(image, x, y, 8, 8); // Отрисовка с нормальным размером
+        gc.drawImage(image, x, y, width, height); // Отрисовка с нормальным размером
     }
 }
