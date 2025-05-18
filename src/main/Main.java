@@ -26,14 +26,14 @@ public class Main extends Application {
     public static final int HEIGHT = 600;
     private static final int DEATH_DELAY = 800;
 
-    private boolean isMusicMuted = false;  // Для фонової музыки
-    private boolean isSoundMuted = false;  // Для звуков игры (например, прыжка)
+    private boolean isMusicMuted = false;
+    private boolean isSoundMuted = false;
 
     private final Set<KeyCode> keysPressed = new HashSet<>();
     private Player player;
     private Level level;
     private Portal portal;
-    private boolean isGamePaused = false; // Флаг паузы
+    private boolean isGamePaused = false;
     private Image backgroundImage;
     private MediaPlayer backgroundMusic;
 
@@ -47,10 +47,10 @@ public class Main extends Application {
 
     private Scene menuScene;
     private Scene settingsScene;
-    private Image laserImage;   // Изображение лазера
-    private Image rocketImage;  // Изображение ракеты
+    private Image laserImage;
+    private Image rocketImage;
 
-    private Image playerImage;  // Изображение игрока
+    private Image playerImage;
     private Image bulletImage;
 
     private Image playerRight;
@@ -62,7 +62,7 @@ public class Main extends Application {
         primaryStage.setTitle("Space Escape");
         primaryStage.setResizable(false);
         loadLevel(levelIndex);
-        // Заранее загружаем фон и музыку
+
         playerImage = new Image(getClass().getResourceAsStream("/images/player.png"));
 //        bulletImage = new Image(getClass().getResourceAsStream("/images/bullet.png"));
         playerRight = new Image(getClass().getResourceAsStream("/images/player_right.png"));
@@ -80,24 +80,21 @@ public class Main extends Application {
         backgroundMusic.setCycleCount(MediaPlayer.INDEFINITE);
         backgroundMusic.play();
 
-        // Показать главное меню
         showMainMenu(primaryStage);
         primaryStage.show();
     }
 
     private void loadLevel(int index) {
         level = new Level(levelNames.get(index));
-        player = new Player(100, 500, level.getTiles(),// текущий спрайт
+        player = new Player(100, 500, level.getTiles(),
                 bulletImage, laserImage, rocketImage,
-                playerLeft, playerRight);         // направления
-        // Передаем все 4 изображения
+                playerLeft, playerRight);
         portal = new Portal(level.getPortalX(), level.getPortalY());
     }
 
     private void update() {
         player.update(keysPressed);
 
-        // смерть от шипов
         for (Tile tile : level.getTiles()) {
             if (tile.getType() == Tile.Type.SPIKES && tile.intersects(player)) {
                 loseLife("Наступил на шипы");
@@ -105,13 +102,11 @@ public class Main extends Application {
             }
         }
 
-        // смерть при падении
         if (player.getY() > HEIGHT) {
             loseLife("Упал с карты");
             return;
         }
 
-        // переход через портал
         if (portal.checkCollision(player)) {
             levelIndex++;
             if (levelIndex < levelNames.size()) {
@@ -129,7 +124,6 @@ public class Main extends Application {
         level.render(gc);
         portal.render(gc);
         player.render(gc);
-        // UI: отрисовка количества жизней
         gc.setFill(Color.WHITE);
         gc.setFont(javafx.scene.text.Font.font(20));
         gc.fillText("❤️ Жизни: " + lives, 10, 25);
@@ -151,10 +145,9 @@ public class Main extends Application {
             backgroundMusic.stop();
             showLoseScreen();
         } else {
-            // Задержка перед рестартом уровня
             new Thread(() -> {
                 try {
-                    Thread.sleep(800); // небольшая пауза
+                    Thread.sleep(800);
                 } catch (InterruptedException ignored) {}
                 javafx.application.Platform.runLater(() -> {
                     loadLevel(levelIndex);
@@ -257,15 +250,15 @@ public class Main extends Application {
         Scene scene = new Scene(root);
         Canvas canvas = new Canvas(WIDTH, HEIGHT);
         root.getChildren().add(canvas);
-        gc = canvas.getGraphicsContext2D();  // Инициализация GraphicsContext
+        gc = canvas.getGraphicsContext2D();
 
         scene.setOnKeyPressed(e -> {
             keysPressed.add(e.getCode());
 
             switch (e.getCode()) {
-                case F -> player.shoot();        // обычная пуля
-                case R -> player.shootRocket();  // ракета
-                case Q -> player.shootLaser();   // лазер
+                case F -> player.shoot();
+                case R -> player.shootRocket();
+                case Q -> player.shootLaser();
             }
         });
 
@@ -275,10 +268,9 @@ public class Main extends Application {
 
         loadLevel(levelIndex);
 
-        // Добавляем кнопку паузы в правый верхний угол
         Button pauseButton = new Button("⏸ Пауза");
-        pauseButton.setLayoutX(WIDTH - 90);  // Располагаем кнопку на 90 пикселей влево от правого края
-        pauseButton.setLayoutY(10);  // Небольшой отступ от верхнего края
+        pauseButton.setLayoutX(WIDTH - 90);
+        pauseButton.setLayoutY(10);
         pauseButton.setOnAction(e -> {
             isGamePaused = !isGamePaused;  // Переключаем состояние паузы
             pauseButton.setText(isGamePaused ? "▶ Возобновить" : "⏸ Пауза");
@@ -286,12 +278,11 @@ public class Main extends Application {
         });
         pauseButton.setFocusTraversable(false);
 
-        root.getChildren().add(pauseButton);  // Добавляем кнопку паузы в игровую сцену
+        root.getChildren().add(pauseButton);
 
-        // Создаем игровой цикл
         gameLoop = new AnimationTimer() {
             @Override public void handle(long now) {
-                if (!isGamePaused) {  // Если игра не на паузе
+                if (!isGamePaused) {
                     update();
                     render();
                 }
@@ -309,19 +300,16 @@ public class Main extends Application {
         root.getChildren().add(canvas);
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
-        // Фон
         if (backgroundImage == null)
             backgroundImage = new Image(getClass().getResourceAsStream("/images/background.png"));
         gc.drawImage(backgroundImage, 0, 0, WIDTH, HEIGHT);
 
-        // Заголовок
         Text title = new Text("🌌 SPACE ESCAPE");
         title.setFill(Color.WHITE);
         title.setStyle("-fx-font-size: 36px; -fx-font-weight: bold;");
         title.setX(250);
         title.setY(150);
 
-        // Кнопка Старт
         Button startButton = new Button("▶ Начать игру");
         startButton.setLayoutX(330);
         startButton.setLayoutY(220);
@@ -330,13 +318,11 @@ public class Main extends Application {
             gameLoop.start();
         });
 
-        // Кнопка Выход
         Button exitButton = new Button("❌ Выйти");
         exitButton.setLayoutX(345);
         exitButton.setLayoutY(270);
         exitButton.setOnAction(e -> System.exit(0));
 
-        // Кнопка Настроек
         Button settingsButton = new Button("⚙ Настройки");
         settingsButton.setLayoutX(330);
         settingsButton.setLayoutY(320);
@@ -355,7 +341,6 @@ public class Main extends Application {
         root.getChildren().add(canvas);
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
-        // Фон
         gc.setFill(Color.BLACK);
         gc.fillRect(0, 0, WIDTH, HEIGHT);
 
@@ -365,7 +350,6 @@ public class Main extends Application {
         settingsTitle.setX(300);
         settingsTitle.setY(100);
 
-        // Кнопка для звука
         Button soundButton = new Button(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
         soundButton.setLayoutX(300);
         soundButton.setLayoutY(150);
@@ -373,7 +357,7 @@ public class Main extends Application {
             isSoundMuted = !isSoundMuted;
             if (isSoundMuted) {
                 backgroundMusic.setMute(true);
-                if (player != null) {  // Проверяем, что player не равен null
+                if (player != null) {
                     player.setJumpSoundMuted(true);
                 }
             } else {
@@ -385,7 +369,7 @@ public class Main extends Application {
             soundButton.setText(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
         });
 
-        // Кнопка для музыки
+
         Button musicButton = new Button(isMusicMuted ? "🎶 Включить музыку" : "🔇 Выключить музыку");
         musicButton.setLayoutX(300);
         musicButton.setLayoutY(200);
@@ -399,7 +383,6 @@ public class Main extends Application {
             musicButton.setText(isMusicMuted ? "🎶 Включить музыку" : "🔇 Выключить музыку");
         });
 
-        // Кнопка возврата в меню
         Button backButton = new Button("↩ Назад");
         backButton.setLayoutX(350);
         backButton.setLayoutY(270);

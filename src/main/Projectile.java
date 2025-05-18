@@ -21,22 +21,18 @@ public abstract class Projectile {
         this.image = image;
     }
 
-    // Обновление позиции снаряда
     public void update() {
-        y -= speed;  // По умолчанию пуля будет двигаться вверх
+        y -= speed;
     }
 
-    // Рендеринг снаряда
     public void render(GraphicsContext gc) {
         gc.drawImage(image, x, y);
     }
 
-    // Проверка столкновений с объектами
     public boolean intersects(Tile tile) {
         return tile.getBounds().intersects(x, y, image.getWidth(), image.getHeight());
     }
 
-    // Получаем координаты снаряда
     public double getX() {
         return x;
     }
@@ -45,12 +41,12 @@ public abstract class Projectile {
         return y;
     }
 
-    // Удаление снаряда из списка, если он выходит за пределы экрана
+
     public boolean isOutOfBounds(double screenHeight) {
         return y < 0 || y > screenHeight;
     }
     public Bounds getBounds() {
-        return new Rectangle(x, y, width, height).getBoundsInLocal(); // ✅
+        return new Rectangle(x, y, width, height).getBoundsInLocal();
     }
 
 }

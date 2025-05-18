@@ -10,7 +10,7 @@ public class Rocket extends Projectile {
     public Rocket(double x, double y, boolean facingRight, Image image) {
         super(x, y, facingRight ? 3 : -3, image);
         this.width = 27;
-        this.height = 25;// медленнее
+        this.height = 25;
     }
 
     @Override

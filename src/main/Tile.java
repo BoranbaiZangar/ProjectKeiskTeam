@@ -13,7 +13,7 @@ public class Tile {
         SPIKES,
         ICE,
         DISAPPEARING,
-        EMPTY // для исчезнувших тайлов
+        EMPTY
     }
 
     private int x, y;
@@ -30,7 +30,7 @@ public class Tile {
         this.y = y;
         this.type = type;
         this.image = image;
-        this.width = size;  // Инициализация ширины на основе изображения
+        this.width = size;
         this.height = size;
     }
 
@@ -38,12 +38,12 @@ public class Tile {
         if (type == Type.EMPTY) return;
 
         if (image != null) {
-            // Эффект мигания исчезающей платформы
+
             if (type == Type.DISAPPEARING && markedToDisappear) {
                 long now = System.currentTimeMillis();
                 long elapsed = now - disappearStartTime;
 
-                // мигает каждые 200мс
+
                 if ((elapsed / 200) % 2 == 0) {
                     gc.drawImage(image, x, y, size, size);
                 } else {

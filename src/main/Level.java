@@ -13,7 +13,6 @@ public class Level {
     public static final int TILE_SIZE = 40;
     private List<Tile> tiles = new ArrayList<>();
 
-    // Изображения тайлов
     private Image platformImg;
     private Image spikeImg;
     private Image iceImg;
@@ -21,13 +20,11 @@ public class Level {
 
     private boolean completed = false;
 
-    // Координаты старта и портала
     private int startX = -1, startY = -1;
     private int portalX = -1, portalY = -1;
 
     public Level(String filename) {
         try {
-            // Загрузка изображений
             platformImg = new Image(getClass().getResourceAsStream("/images/tileset.png"));
             spikeImg = new Image(getClass().getResourceAsStream("/images/spikes.png"));
             iceImg = new Image(getClass().getResourceAsStream("/images/ice.png"));
@@ -40,10 +37,9 @@ public class Level {
             while ((line = reader.readLine()) != null) {
                 for (int x = 0; x < line.length(); x++) {
                     char ch = line.charAt(x);
-                    int px = x * TILE_SIZE; // Умножаем индекс на размер плитки
-                    int py = y * TILE_SIZE; // Умножаем на размер по оси Y
+                    int px = x * TILE_SIZE;
+                    int py = y * TILE_SIZE;
 
-                    // Генерация тайлов в зависимости от символа
                     switch (ch) {
                         case '#':
                             tiles.add(new Tile(px, py, Tile.Type.PLATFORM, platformImg));
@@ -79,15 +75,14 @@ public class Level {
         }
     }
     public void advanceToNextLevel() {
-        // Здесь ты можешь обновить состояние игры, загрузить новый уровень
-        completed = true;  // Устанавливаем, что уровень завершен
+
+        completed = true;
         System.out.println("Переход на следующий уровень!");
         // Тут может быть логика загрузки следующего уровня, например:
         // levelIndex++;  // Увеличиваем индекс уровня
         // loadLevel(levelIndex);  // Загружаем новый уровень
     }
 
-    // Рендер всех тайлов
     public void render(GraphicsContext gc) {
         for (Tile tile : tiles) {
             tile.update();

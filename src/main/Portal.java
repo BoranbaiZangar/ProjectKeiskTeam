@@ -27,13 +27,13 @@ public class Portal {
     }
 
     public boolean checkCollision(Player player) {
-        // Проверяем пересечение игрока с порталом
+
         boolean isColliding = player.getX() + player.getWidth() > x &&
                 player.getX() < x + width &&
                 player.getY() + player.getHeight() > y &&
                 player.getY() < y + height;
         if (isColliding) {
-            teleportSound.play(); // Проигрываем звук телепортации
+            teleportSound.play();
         }
         return isColliding;
     }

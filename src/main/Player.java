@@ -52,7 +52,7 @@ public class Player {
         this.playerImageRight = playerImageRight;
         this.playerImageLeft = playerImageLeft;
         this.currentPlayerImage = playerImageRight;
-//
+
         this.bulletImage = bulletImage;
         this.laserImage = laserImage;
         this.rocketImage = rocketImage;
@@ -63,7 +63,6 @@ public class Player {
 
 
     public void update(Set<KeyCode> keysPressed) {
-        // Управление влево/вправо
         if (keysPressed.contains(KeyCode.LEFT) || keysPressed.contains(KeyCode.A)) {
             velocityX = -MOVE_SPEED;
             facingRight = false;
@@ -91,10 +90,8 @@ public class Player {
 
         velocityY += GRAVITY;
 
-        // Сброс флага льда
         onIce = false;
 
-        // Проверка под ногами
         for (Tile tile : tiles) {
             double tx = tile.getX();
             double ty = tile.getY();
@@ -108,7 +105,6 @@ public class Player {
                 onIce = true;
             }
 
-            // Исчезающие платформы
             if (tile.getType() == Tile.Type.DISAPPEARING) {
                 double dx = tile.getX();
                 double dy = tile.getY();
@@ -124,7 +120,6 @@ public class Player {
             }
         }
 
-        // Движение
         double nextX = x + velocityX;
         double nextY = y + velocityY;
 
@@ -135,14 +130,13 @@ public class Player {
             velocityY = 0;
         }
 
-        // Земля
+
         if (y + height >= GROUND_Y) {
             y = GROUND_Y - height;
             velocityY = 0;
             canJump = true;
         }
 
-        // Ограничение по границам экрана
         if (x < 0) x = 0;
         if (x + width > Main.WIDTH) x = Main.WIDTH - width;
 
@@ -150,9 +144,8 @@ public class Player {
         if (y + height > Main.HEIGHT) y = Main.HEIGHT - height;
     }
 
-    // Метод для стрельбы
     public void shoot() {
-        double offsetX = facingRight ? width : -20; // сместим старт пули перед игроком
+        double offsetX = facingRight ? width : -20;
         projectileManager.addProjectile(new Bullet(x + offsetX, y + height / 2, facingRight, bulletImage));
     }
 
@@ -165,10 +158,9 @@ public class Player {
     }
 
 
-    // Метод для отрисовки игрока и снарядов
     public void render(GraphicsContext gc) {
-        gc.drawImage(currentPlayerImage, x, y, width, height);  // Отрисовываем игрока
-        projectileManager.render(gc);  // Отрисовываем все снаряды
+        gc.drawImage(currentPlayerImage, x, y, width, height);
+        projectileManager.render(gc);
     }
     private boolean isColliding(double nextX, double nextY) {
         for (Tile tile : tiles) {
@@ -195,7 +187,7 @@ public class Player {
     }
 
 
-    // Геттеры для получения позиции и размеров игрока
+
     public double getX() { return x; }
     public double getY() { return y; }
     public double getWidth() { return width; }

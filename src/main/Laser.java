@@ -7,7 +7,7 @@ public class Laser extends Projectile {
 
     public Laser(double x, double y, boolean facingRight, Image image) {
         super(x, y, facingRight ? 8 : -8, image);
-        this.width = 60;
+        this.width = 90;
         this.height = 4;// быстрее
     }
 

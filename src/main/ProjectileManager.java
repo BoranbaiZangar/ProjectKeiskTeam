@@ -9,7 +9,7 @@ public class ProjectileManager {
 
     private final List<Projectile> projectiles = new ArrayList<>();
 
-    // 🔹 Ссылка на тайлы (платформы, стены)
+
     private List<Tile> tiles;
 
     public void setTiles(List<Tile> tiles) {
@@ -27,18 +27,16 @@ public class ProjectileManager {
             Projectile p = iterator.next();
             p.update();
 
-            // Удалить, если за пределами экрана
             if (p.getX() < 0 || p.getX() > Main.WIDTH) {
                 iterator.remove();
                 continue;
             }
 
-            // 🔥 Проверка на столкновение с платформой
             if (tiles != null) {
                 for (Tile tile : tiles) {
                     if (tile.getType() == Tile.Type.PLATFORM || tile.getType() == Tile.Type.ICE) {
                         if (tile.getBounds().intersects(p.getBounds())) {
-                            iterator.remove(); // удаляем пулю при столкновении
+                            iterator.remove();
                             break;
                         }
                     }

@@ -1,4 +1,5 @@
 package main;
 
-public class Obstacle {
+public class
+Obstacle {
 }
