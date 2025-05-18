@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Set;
 
 public class Player {
-
     private double x;
     private double y;
     private final double width = 30;
@@ -24,8 +23,12 @@ public class Player {
 
     private final double GROUND_Y = Main.HEIGHT - height;
     private List<Tile> tiles;
+    private Level level; // Добавлено поле для Level
 
-    private Image playerImage;
+    private Image playerImageRight;
+    private Image playerImageLeft;
+    private Image currentPlayerImage;
+
     private AudioClip jumpSound;
     private boolean isJumpSoundMuted = false;
     private Image bulletImage;
@@ -35,32 +38,27 @@ public class Player {
     private ProjectileManager projectileManager;
     private double velocityX = 0;
     private boolean onIce = false;
-
     private boolean facingRight = true;
+    private Inventory inventory; // Добавлено для инвентаря
 
-    private Image playerImageRight;
-    private Image playerImageLeft;
-    private Image currentPlayerImage;
-
-
-    public Player(double startX, double startY, List<Tile> tiles,
-                   Image bulletImage, Image laserImage, Image rocketImage,
+    public Player(double startX, double startY, Level level,
+                  Image bulletImage, Image laserImage, Image rocketImage,
                   Image playerImageLeft, Image playerImageRight) {
         this.x = startX;
         this.y = startY;
-        this.tiles = tiles;
+        this.level = level;
+        this.tiles = level.getTiles(); // Получаем тайлы из Level
         this.playerImageRight = playerImageRight;
         this.playerImageLeft = playerImageLeft;
         this.currentPlayerImage = playerImageRight;
-
         this.bulletImage = bulletImage;
         this.laserImage = laserImage;
         this.rocketImage = rocketImage;
         this.projectileManager = new ProjectileManager();
         this.jumpSound = new AudioClip(getClass().getResource("/sounds/jump.wav").toString());
         this.projectileManager.setTiles(this.tiles);
+        this.inventory = new Inventory();
     }
-
 
     public void update(Set<KeyCode> keysPressed) {
         if (keysPressed.contains(KeyCode.LEFT) || keysPressed.contains(KeyCode.A)) {
@@ -74,13 +72,11 @@ public class Player {
         } else if (!onIce) {
             velocityX = 0;
         } else {
-
             velocityX *= 0.95;
             if (Math.abs(velocityX) < 0.1) velocityX = 0;
         }
 
         projectileManager.updateProjectiles();
-
 
         if ((keysPressed.contains(KeyCode.UP) || keysPressed.contains(KeyCode.W) || keysPressed.contains(KeyCode.SPACE)) && canJump) {
             velocityY = JUMP_FORCE;
@@ -98,7 +94,7 @@ public class Player {
             double footX = x + width / 2;
             double footY = y + height + 1;
 
-            boolean standingOnTile = footX > tx && footX < tx + Level.TILE_SIZE &&
+            boolean standingOnTile  = footX > tx && footX < tx + Level.TILE_SIZE &&
                     footY > ty && footY < ty + Level.TILE_SIZE;
 
             if (standingOnTile && tile.getType() == Tile.Type.ICE) {
@@ -124,12 +120,12 @@ public class Player {
         double nextY = y + velocityY;
 
         if (!isColliding(nextX, y)) x = nextX;
-        if (!isColliding(x, nextY)) y = nextY;
-        else {
+        if (!isColliding(x, nextY)) {
+            y = nextY;
+        } else {
             if (velocityY > 0) canJump = true;
             velocityY = 0;
         }
-
 
         if (y + height >= GROUND_Y) {
             y = GROUND_Y - height;
@@ -157,11 +153,11 @@ public class Player {
         projectileManager.addProjectile(new Laser(x + (facingRight ? width : -6), y + height / 2, facingRight, laserImage));
     }
 
-
     public void render(GraphicsContext gc) {
         gc.drawImage(currentPlayerImage, x, y, width, height);
         projectileManager.render(gc);
     }
+
     private boolean isColliding(double nextX, double nextY) {
         for (Tile tile : tiles) {
             Tile.Type type = tile.getType();
@@ -177,8 +173,19 @@ public class Player {
                 if (overlap) return true;
             }
         }
+
+        // Проверка столкновений с дверями (если класс Door реализован)
+        if (level != null && level.getDoors() != null) {
+            for (Door door : level.getDoors()) {
+                if (door.checkCollision(this, inventory)) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
+
     public void setJumpSoundMuted(boolean muted) {
         this.isJumpSoundMuted = muted;
         if (jumpSound != null) {
@@ -186,10 +193,9 @@ public class Player {
         }
     }
 
-
-
     public double getX() { return x; }
     public double getY() { return y; }
     public double getWidth() { return width; }
     public double getHeight() { return height; }
+    public Inventory getInventory() { return inventory; }
 }

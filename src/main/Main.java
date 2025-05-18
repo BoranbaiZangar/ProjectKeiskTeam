@@ -57,6 +57,8 @@ public class Main extends Application {
     private Image playerLeft;
     private AudioClip jumpSound;
 
+    private EnemyManager enemyManager;
+
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Space Escape");
@@ -86,27 +88,39 @@ public class Main extends Application {
 
     private void loadLevel(int index) {
         level = new Level(levelNames.get(index));
-        player = new Player(100, 500, level.getTiles(),
+        player = new Player(100, 500, level, // Передаем объект level вместо level.getTiles()
                 bulletImage, laserImage, rocketImage,
                 playerLeft, playerRight);
         portal = new Portal(level.getPortalX(), level.getPortalY());
+        enemyManager = new EnemyManager();
+        // Пример добавления врага
+        Image enemyImage = new Image(getClass().getResourceAsStream("/images/enemy.png"));
+        enemyManager.addEnemy(new PatrolEnemy(200, 500, enemyImage));
     }
 
+    // В методе update заменяем проверку шипов:
     private void update() {
+        if (isGamePaused) return;
         player.update(keysPressed);
+        level.update(player); // Добавлено для кнопок
+        enemyManager.update(player, level.getTiles());
+        checkCollisions();
+        checkLevelCompletion();
+    }
 
+    private void checkCollisions() {
         for (Tile tile : level.getTiles()) {
-            if (tile.getType() == Tile.Type.SPIKES && tile.intersects(player)) {
+            if (tile.checkCollision(player)) {
                 loseLife("Наступил на шипы");
                 return;
             }
         }
-
         if (player.getY() > HEIGHT) {
             loseLife("Упал с карты");
-            return;
         }
+    }
 
+    private void checkLevelCompletion() {
         if (portal.checkCollision(player)) {
             levelIndex++;
             if (levelIndex < levelNames.size()) {
@@ -124,6 +138,7 @@ public class Main extends Application {
         level.render(gc);
         portal.render(gc);
         player.render(gc);
+        enemyManager.render(gc);
         gc.setFill(Color.WHITE);
         gc.setFont(javafx.scene.text.Font.font(20));
         gc.fillText("❤️ Жизни: " + lives, 10, 25);
@@ -254,11 +269,12 @@ public class Main extends Application {
 
         scene.setOnKeyPressed(e -> {
             keysPressed.add(e.getCode());
-
             switch (e.getCode()) {
                 case F -> player.shoot();
                 case R -> player.shootRocket();
                 case Q -> player.shootLaser();
+                case E -> player.getInventory().addItem(new HealthPack(20)); // Пример
+                case H -> level.revealHiddenTiles(player);
             }
         });
 
