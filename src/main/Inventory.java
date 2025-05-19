@@ -29,4 +29,7 @@ public class Inventory {
     public boolean hasKey(String doorId) {
         return items.stream().anyMatch(item -> item instanceof Key && ((Key) item).getDoorId().equals(doorId));
     }
+    public List<Item> getItems() { // Новый метод (или подтверждение существующего)
+        return items;
+    }
 }

@@ -14,6 +14,11 @@ public class Key extends Item {
 
     @Override
     public void use(Player player) {
-        // Логика открытия двери
+        for (Door door : player.getLevel().getDoors()) {
+            if (door.getKeyId() != null && door.getKeyId().equals(doorId) && !door.isOpen()) {
+                door.open();
+                break;
+            }
+        }
     }
 }

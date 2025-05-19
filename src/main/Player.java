@@ -4,6 +4,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.media.AudioClip;
+import javafx.scene.paint.Color;
 
 import java.util.List;
 import java.util.Set;
@@ -13,6 +14,8 @@ public class Player {
     private double y;
     private final double width = 30;
     private final double height = 35;
+    private int health = 100;
+    private int maxHealth = 100;
 
     private double velocityY = 0;
     private boolean canJump = false;
@@ -23,7 +26,7 @@ public class Player {
 
     private final double GROUND_Y = Main.HEIGHT - height;
     private List<Tile> tiles;
-    private Level level; // Добавлено поле для Level
+    private Level level;
 
     private Image playerImageRight;
     private Image playerImageLeft;
@@ -39,7 +42,7 @@ public class Player {
     private double velocityX = 0;
     private boolean onIce = false;
     private boolean facingRight = true;
-    private Inventory inventory; // Добавлено для инвентаря
+    private Inventory inventory;
 
     public Player(double startX, double startY, Level level,
                   Image bulletImage, Image laserImage, Image rocketImage,
@@ -47,7 +50,7 @@ public class Player {
         this.x = startX;
         this.y = startY;
         this.level = level;
-        this.tiles = level.getTiles(); // Получаем тайлы из Level
+        this.tiles = level.getTiles();
         this.playerImageRight = playerImageRight;
         this.playerImageLeft = playerImageLeft;
         this.currentPlayerImage = playerImageRight;
@@ -94,7 +97,7 @@ public class Player {
             double footX = x + width / 2;
             double footY = y + height + 1;
 
-            boolean standingOnTile  = footX > tx && footX < tx + Level.TILE_SIZE &&
+            boolean standingOnTile = footX > tx && footX < tx + Level.TILE_SIZE &&
                     footY > ty && footY < ty + Level.TILE_SIZE;
 
             if (standingOnTile && tile.getType() == Tile.Type.ICE) {
@@ -154,7 +157,12 @@ public class Player {
     }
 
     public void render(GraphicsContext gc) {
-        gc.drawImage(currentPlayerImage, x, y, width, height);
+        if (currentPlayerImage == null) {
+            gc.setFill(Color.RED);
+            gc.fillRect(x, y, width, height);
+        } else {
+            gc.drawImage(currentPlayerImage, x, y, width, height);
+        }
         projectileManager.render(gc);
     }
 
@@ -174,7 +182,6 @@ public class Player {
             }
         }
 
-        // Проверка столкновений с дверями (если класс Door реализован)
         if (level != null && level.getDoors() != null) {
             for (Door door : level.getDoors()) {
                 if (door.checkCollision(this, inventory)) {
@@ -193,9 +200,15 @@ public class Player {
         }
     }
 
+    public void heal(int amount) {
+        health = Math.min(maxHealth, health + amount);
+    }
+
     public double getX() { return x; }
     public double getY() { return y; }
     public double getWidth() { return width; }
     public double getHeight() { return height; }
     public Inventory getInventory() { return inventory; }
+    public Level getLevel() { return level; }
+    public int getHealth() { return health; }
 }

@@ -10,6 +10,10 @@ public class HealthPack extends Item {
 
     @Override
     public void use(Player player) {
-        // Требуется метод для восстановления здоровья в Player
+        player.heal(healAmount);
+    }
+
+    public int getHealAmount() { // Для отображения в инвентаре
+        return healAmount;
     }
 }

@@ -7,7 +7,6 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
-import javafx.scene.media.AudioClip;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
@@ -47,63 +46,73 @@ public class Main extends Application {
 
     private Scene menuScene;
     private Scene settingsScene;
+    private Scene inventoryScene;
+    private Scene gameScene;
+    private Group gameRoot;
+    private Stage primaryStage;
+
     private Image laserImage;
     private Image rocketImage;
-
     private Image playerImage;
     private Image bulletImage;
-
     private Image playerRight;
     private Image playerLeft;
-    private AudioClip jumpSound;
 
     private EnemyManager enemyManager;
+    private ProjectileManager projectileManager;
 
     @Override
     public void start(Stage primaryStage) {
+        this.primaryStage = primaryStage;
         primaryStage.setTitle("Space Escape");
         primaryStage.setResizable(false);
-        loadLevel(levelIndex);
+        projectileManager = new ProjectileManager();
 
-        playerImage = new Image(getClass().getResourceAsStream("/images/player.png"));
-//        bulletImage = new Image(getClass().getResourceAsStream("/images/bullet.png"));
-        playerRight = new Image(getClass().getResourceAsStream("/images/player_right.png"));
-        playerLeft = new Image(getClass().getResourceAsStream("/images/player_left.png"));
+        try {
+            playerImage = new Image(getClass().getResourceAsStream("/images/player.png"));
+            playerRight = new Image(getClass().getResourceAsStream("/images/player_right.png"));
+            playerLeft = new Image(getClass().getResourceAsStream("/images/player_left.png"));
+            rocketImage = new Image(getClass().getResourceAsStream("/images/rocket.png"));
+            laserImage = new Image(getClass().getResourceAsStream("/images/laser.png"));
+            bulletImage = new Image(getClass().getResourceAsStream("/images/bullet.png"));
+            backgroundImage = new Image(getClass().getResourceAsStream("/images/background.png"));
+        } catch (Exception e) {
+            System.err.println("Ошибка загрузки изображений: " + e.getMessage());
+            e.printStackTrace();
+        }
 
-        rocketImage = new Image(getClass().getResourceAsStream("/images/rocket.png"));
-        laserImage = new Image(getClass().getResourceAsStream("/images/laser.png"));
-        jumpSound = new AudioClip(getClass().getResource("/sounds/jump.wav").toString());
-
-
-        bulletImage = new Image(getClass().getResourceAsStream("/images/bullet.png"));
-        backgroundImage = new Image(getClass().getResourceAsStream("/images/background.png"));
         Media media = new Media(getClass().getResource("/sounds/background-music.mp3").toString());
         backgroundMusic = new MediaPlayer(media);
         backgroundMusic.setCycleCount(MediaPlayer.INDEFINITE);
         backgroundMusic.play();
 
+        loadLevel(levelIndex);
         showMainMenu(primaryStage);
         primaryStage.show();
     }
 
     private void loadLevel(int index) {
-        level = new Level(levelNames.get(index));
-        player = new Player(100, 500, level, // Передаем объект level вместо level.getTiles()
+        level = new Level(levelNames.get(index), projectileManager);
+        player = new Player(100, 500, level,
                 bulletImage, laserImage, rocketImage,
                 playerLeft, playerRight);
+        projectileManager.setTiles(level.getTiles());
         portal = new Portal(level.getPortalX(), level.getPortalY());
         enemyManager = new EnemyManager();
-        // Пример добавления врага
-        Image enemyImage = new Image(getClass().getResourceAsStream("/images/enemy.png"));
-        enemyManager.addEnemy(new PatrolEnemy(200, 500, enemyImage));
+        for (Enemy enemy : level.getEnemies()) {
+            enemyManager.addEnemy(enemy);
+        }
+        if (gameScene != null) {
+            updateGameScene();
+        }
     }
 
-    // В методе update заменяем проверку шипов:
     private void update() {
         if (isGamePaused) return;
         player.update(keysPressed);
-        level.update(player); // Добавлено для кнопок
+        level.update(player);
         enemyManager.update(player, level.getTiles());
+        projectileManager.updateProjectiles();
         checkCollisions();
         checkLevelCompletion();
     }
@@ -134,13 +143,16 @@ public class Main extends Application {
     }
 
     private void render() {
+        if (gc == null) {
+            System.err.println("GraphicsContext не инициализирован!");
+            return;
+        }
         gc.drawImage(backgroundImage, 0, 0, WIDTH, HEIGHT);
         level.render(gc);
         portal.render(gc);
         player.render(gc);
         enemyManager.render(gc);
         gc.setFill(Color.WHITE);
-        gc.setFont(javafx.scene.text.Font.font(20));
         gc.fillText("❤️ Жизни: " + lives, 10, 25);
     }
 
@@ -162,7 +174,7 @@ public class Main extends Application {
         } else {
             new Thread(() -> {
                 try {
-                    Thread.sleep(800);
+                    Thread.sleep(DEATH_DELAY);
                 } catch (InterruptedException ignored) {}
                 javafx.application.Platform.runLater(() -> {
                     loadLevel(levelIndex);
@@ -198,26 +210,9 @@ public class Main extends Application {
         exitButton.setLayoutY(150);
         exitButton.setOnAction(e -> System.exit(0));
 
-        Button soundButton = new Button(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
-        soundButton.setLayoutX(80);
-        soundButton.setLayoutY(270);
-        soundButton.setOnAction(e -> {
-            isSoundMuted = !isSoundMuted;
-            if (isSoundMuted) {
-                backgroundMusic.setMute(true);
-                player.setJumpSoundMuted(true);
-            } else {
-                backgroundMusic.setMute(false);
-                player.setJumpSoundMuted(false);
-            }
-            soundButton.setText(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
-        });
-
-        root.getChildren().addAll(winText, restartButton, exitButton, soundButton);
+        root.getChildren().addAll(winText, restartButton, exitButton);
         winStage.setScene(scene);
         winStage.show();
-
-
     }
 
     private void showLoseScreen() {
@@ -258,56 +253,62 @@ public class Main extends Application {
         backgroundMusic.play();
         loadLevel(levelIndex);
         gameLoop.start();
+        primaryStage.setScene(gameScene);
     }
 
-    private Scene createGameScene(Stage stage) {
-        Group root = new Group();
-        Scene scene = new Scene(root);
-        Canvas canvas = new Canvas(WIDTH, HEIGHT);
-        root.getChildren().add(canvas);
-        gc = canvas.getGraphicsContext2D();
+    private void createGameScene() {
+        if (gameScene == null) {
+            gameRoot = new Group();
+            gameScene = new Scene(gameRoot);
+            Canvas canvas = new Canvas(WIDTH, HEIGHT);
+            gameRoot.getChildren().add(canvas);
+            gc = canvas.getGraphicsContext2D();
 
-        scene.setOnKeyPressed(e -> {
-            keysPressed.add(e.getCode());
-            switch (e.getCode()) {
-                case F -> player.shoot();
-                case R -> player.shootRocket();
-                case Q -> player.shootLaser();
-                case E -> player.getInventory().addItem(new HealthPack(20)); // Пример
-                case H -> level.revealHiddenTiles(player);
-            }
-        });
-
-
-
-        scene.setOnKeyReleased(e -> keysPressed.remove(e.getCode()));
-
-        loadLevel(levelIndex);
-
-        Button pauseButton = new Button("⏸ Пауза");
-        pauseButton.setLayoutX(WIDTH - 90);
-        pauseButton.setLayoutY(10);
-        pauseButton.setOnAction(e -> {
-            isGamePaused = !isGamePaused;  // Переключаем состояние паузы
-            pauseButton.setText(isGamePaused ? "▶ Возобновить" : "⏸ Пауза");
-
-        });
-        pauseButton.setFocusTraversable(false);
-
-        root.getChildren().add(pauseButton);
-
-        gameLoop = new AnimationTimer() {
-            @Override public void handle(long now) {
-                if (!isGamePaused) {
-                    update();
-                    render();
+            gameScene.setOnKeyPressed(e -> {
+                keysPressed.add(e.getCode());
+                switch (e.getCode()) {
+                    case F -> player.shoot();
+                    case R -> player.shootRocket();
+                    case Q -> player.shootLaser();
+                    case E -> {
+                        isGamePaused = true;
+                        showInventoryMenu(primaryStage);
+                    }
+                    case H -> level.revealHiddenTiles(player);
                 }
-            }
-        };
+            });
 
-        return scene;
+            gameScene.setOnKeyReleased(e -> keysPressed.remove(e.getCode()));
+
+            Button pauseButton = new Button("⏸ Пауза");
+            pauseButton.setLayoutX(WIDTH - 90);
+            pauseButton.setLayoutY(10);
+            pauseButton.setOnAction(e -> {
+                isGamePaused = !isGamePaused;
+                pauseButton.setText(isGamePaused ? "▶ Возобновить" : "⏸ Пауза");
+            });
+            pauseButton.setFocusTraversable(false);
+
+            gameRoot.getChildren().add(pauseButton);
+
+            gameLoop = new AnimationTimer() {
+                @Override public void handle(long now) {
+                    if (!isGamePaused) {
+                        update();
+                        render();
+                    }
+                }
+            };
+        }
+        updateGameScene();
     }
 
+    private void updateGameScene() {
+        if (gc == null) {
+            Canvas canvas = (Canvas) gameRoot.getChildren().get(0);
+            gc = canvas.getGraphicsContext2D();
+        }
+    }
 
     private void showMainMenu(Stage stage) {
         Group root = new Group();
@@ -330,7 +331,8 @@ public class Main extends Application {
         startButton.setLayoutX(330);
         startButton.setLayoutY(220);
         startButton.setOnAction(e -> {
-            stage.setScene(createGameScene(stage));
+            createGameScene();
+            stage.setScene(gameScene);
             gameLoop.start();
         });
 
@@ -346,8 +348,6 @@ public class Main extends Application {
 
         root.getChildren().addAll(title, startButton, exitButton, settingsButton);
         stage.setScene(menuScene);
-
-
     }
 
     private void showSettingsMenu(Stage stage) {
@@ -385,7 +385,6 @@ public class Main extends Application {
             soundButton.setText(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
         });
 
-
         Button musicButton = new Button(isMusicMuted ? "🎶 Включить музыку" : "🔇 Выключить музыку");
         musicButton.setLayoutX(300);
         musicButton.setLayoutY(200);
@@ -408,6 +407,69 @@ public class Main extends Application {
         stage.setScene(settingsScene);
     }
 
+    private void showInventoryMenu(Stage stage) {
+        Group root = new Group();
+        inventoryScene = new Scene(root, WIDTH, HEIGHT);
+        Canvas canvas = new Canvas(WIDTH, HEIGHT);
+        root.getChildren().add(canvas);
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+
+        gc.setFill(Color.BLACK);
+        gc.fillRect(0, 0, WIDTH, HEIGHT);
+
+        Text inventoryTitle = new Text("Инвентарь");
+        inventoryTitle.setFill(Color.WHITE);
+        inventoryTitle.setStyle("-fx-font-size: 30px;");
+        inventoryTitle.setX(300);
+        inventoryTitle.setY(100);
+
+        List<Item> items = player.getInventory().getItems();
+        for (int i = 0; i < items.size(); i++) {
+            Item item = items.get(i);
+            String itemText = item.getName();
+            if (item instanceof HealthPack) {
+                itemText += ": Восстанавливает " + ((HealthPack) item).getHealAmount() + " здоровья";
+            } else if (item instanceof Key) {
+                itemText += ": Открывает дверь " + ((Key) item).getDoorId();
+            }
+            Text itemLabel = new Text(itemText);
+            itemLabel.setFill(Color.WHITE);
+            itemLabel.setStyle("-fx-font-size: 20px;");
+            itemLabel.setX(200);
+            itemLabel.setY(150 + i * 30);
+            root.getChildren().add(itemLabel);
+
+            Button useButton = new Button("Использовать");
+            useButton.setLayoutX(500);
+            useButton.setLayoutY(130 + i * 30);
+            int index = i;
+            useButton.setOnAction(e -> {
+                Item selectedItem = items.get(index);
+                selectedItem.use(player);
+                player.getInventory().getItems().remove(selectedItem);
+                showInventoryMenu(stage);
+            });
+            root.getChildren().add(useButton);
+        }
+
+        Button backButton = new Button("↩ Назад");
+        backButton.setLayoutX(350);
+        backButton.setLayoutY(HEIGHT - 50);
+        backButton.setOnAction(e -> {
+            isGamePaused = false;
+            stage.setScene(gameScene);
+        });
+
+        root.getChildren().addAll(inventoryTitle, backButton);
+        stage.setScene(inventoryScene);
+
+        inventoryScene.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.E) {
+                isGamePaused = false;
+                stage.setScene(gameScene);
+            }
+        });
+    }
 
     public static void main(String[] args) {
         launch(args);
