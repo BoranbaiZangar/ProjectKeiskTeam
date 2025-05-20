@@ -35,6 +35,7 @@ public class Main extends Application {
     private boolean isGamePaused = false;
     private Image backgroundImage;
     private MediaPlayer backgroundMusic;
+    private Inventory playerInventory;
 
     private final List<String> levelNames = List.of("level1.txt", "level2.txt", "level3.txt", "level4.txt");
     private int levelIndex = 0;
@@ -67,6 +68,7 @@ public class Main extends Application {
         primaryStage.setTitle("Space Escape");
         primaryStage.setResizable(false);
         projectileManager = new ProjectileManager();
+        playerInventory = new Inventory();
 
         try {
             playerImage = new Image(getClass().getResourceAsStream("/images/player.png"));
@@ -93,9 +95,17 @@ public class Main extends Application {
 
     private void loadLevel(int index) {
         level = new Level(levelNames.get(index), projectileManager);
-        player = new Player(100, 500, level,
+        int currentHealth = (player != null) ? player.getHealth() : 100;
+        String currentWeapon = (player != null) ? player.getActiveWeapon() : null;
+        int currentScore = (player != null) ? player.getScore() : 0;
+
+        player = new Player((double) level.getStartX(), (double) level.getStartY(), level,
                 bulletImage, laserImage, rocketImage,
-                playerLeft, playerRight);
+                playerLeft, playerRight, playerInventory);
+        player.setHealth(currentHealth);
+        player.setActiveWeapon(currentWeapon);
+        player.setScore(currentScore);
+
         projectileManager.setTiles(level.getTiles());
         portal = new Portal(level.getPortalX(), level.getPortalY());
         enemyManager = new EnemyManager();
@@ -256,7 +266,7 @@ public class Main extends Application {
         lives = 3;
         keysPressed.clear();
         backgroundMusic.play();
-        player.setScore(0);
+        playerInventory = new Inventory();
         loadLevel(levelIndex);
         gameLoop.start();
         primaryStage.setScene(gameScene);

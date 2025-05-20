@@ -16,7 +16,7 @@ public class Player {
     private final double height = 35;
     private int health = 100;
     private int maxHealth = 100;
-    private int score = 0; // Поле для очков
+    private int score = 0;
 
     private double velocityY = 0;
     private boolean canJump = false;
@@ -51,7 +51,7 @@ public class Player {
 
     public Player(double startX, double startY, Level level,
                   Image bulletImage, Image laserImage, Image rocketImage,
-                  Image playerImageLeft, Image playerImageRight) {
+                  Image playerImageLeft, Image playerImageRight, Inventory inventory) {
         this.x = startX;
         this.y = startY;
         this.level = level;
@@ -65,7 +65,7 @@ public class Player {
         this.projectileManager = new ProjectileManager();
         this.jumpSound = new AudioClip(getClass().getResource("/sounds/jump.wav").toString());
         this.projectileManager.setTiles(this.tiles);
-        this.inventory = new Inventory();
+        this.inventory = inventory != null ? inventory : new Inventory();
     }
 
     public void update(Set<KeyCode> keysPressed) {
@@ -244,7 +244,7 @@ public class Player {
 
         if (level != null && level.getDoors() != null) {
             for (Door door : level.getDoors()) {
-                if (door.checkCollision(this)) { // Исправленный вызов
+                if (door.checkCollision(this)) {
                     return true;
                 }
             }
@@ -264,13 +264,18 @@ public class Player {
         health = Math.min(maxHealth, health + amount);
     }
 
+    public void setHealth(int newHealth) {
+        this.health = Math.min(maxHealth, Math.max(0, newHealth));
+        System.out.println("Установлено здоровье: " + health);
+    }
+
     public void addScore(int points) {
         score += points;
         System.out.println("Очки игрока: " + score);
     }
 
     public void setScore(int newScore) {
-        this.score = Math.max(0, newScore); // Защита от отрицательных значений
+        this.score = Math.max(0, newScore);
         System.out.println("Установлены очки: " + score);
     }
 
