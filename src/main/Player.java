@@ -19,6 +19,9 @@ public class Player {
 
     private double velocityY = 0;
     private boolean canJump = false;
+    private boolean canShoot = true; // Флаг для ограничения стрельбы
+    private double shootCooldown = 0; // Таймер задержки
+    private static final double SHOOT_DELAY = 0.5; // Задержка в секундах
 
     private final double MOVE_SPEED = 2.5;
     private final double JUMP_FORCE = -12;
@@ -43,6 +46,7 @@ public class Player {
     private boolean onIce = false;
     private boolean facingRight = true;
     private Inventory inventory;
+    private String activeWeapon = null;
 
     public Player(double startX, double startY, Level level,
                   Image bulletImage, Image laserImage, Image rocketImage,
@@ -85,6 +89,14 @@ public class Player {
             velocityY = JUMP_FORCE;
             canJump = false;
             jumpSound.play();
+        }
+
+        // Обновление таймера задержки стрельбы
+        if (shootCooldown > 0) {
+            shootCooldown -= 1.0 / 60; // Предполагаем 60 FPS
+            if (shootCooldown <= 0) {
+                canShoot = true;
+            }
         }
 
         velocityY += GRAVITY;
@@ -144,16 +156,67 @@ public class Player {
     }
 
     public void shoot() {
+        if (!canShoot || activeWeapon == null) return;
+
         double offsetX = facingRight ? width : -20;
-        projectileManager.addProjectile(new Bullet(x + offsetX, y + height / 2, facingRight, bulletImage));
+        PickupItem activeAmmo = null;
+
+        // Находим активные боеприпасы в инвентаре
+        for (Item item : inventory.getItems()) {
+            if ((item instanceof AmmoBullet && activeWeapon.equals("bullet")) ||
+                    (item instanceof AmmoRocket && activeWeapon.equals("rocket")) ||
+                    (item instanceof AmmoLaser && activeWeapon.equals("laser"))) {
+                activeAmmo = (PickupItem) item;
+                break;
+            }
+        }
+
+        if (activeAmmo == null ||
+                (activeAmmo instanceof AmmoBullet && ((AmmoBullet)activeAmmo).getQuantity() <= 0) ||
+                (activeAmmo instanceof AmmoRocket && ((AmmoRocket)activeAmmo).getQuantity() <= 0) ||
+                (activeAmmo instanceof AmmoLaser && ((AmmoLaser)activeAmmo).getQuantity() <= 0)) {
+            activeWeapon = null;
+            return;
+        }
+
+        switch (activeWeapon) {
+            case "bullet":
+                projectileManager.addProjectile(new Bullet(x + offsetX, y + height / 2, facingRight, bulletImage));
+                ((AmmoBullet)activeAmmo).decreaseQuantity();
+                System.out.println("Выстрел пулей, осталось: " + ((AmmoBullet)activeAmmo).getQuantity());
+                break;
+            case "rocket":
+                projectileManager.addProjectile(new Rocket(x + (facingRight ? width : -14), y + height / 2, facingRight, rocketImage));
+                ((AmmoRocket)activeAmmo).decreaseQuantity();
+                System.out.println("Выстрел ракетой, осталось: " + ((AmmoRocket)activeAmmo).getQuantity());
+                break;
+            case "laser":
+                projectileManager.addProjectile(new Laser(x + (facingRight ? width : -6), y + height / 2, facingRight, laserImage));
+                ((AmmoLaser)activeAmmo).decreaseQuantity();
+                System.out.println("Выстрел лазером, осталось: " + ((AmmoLaser)activeAmmo).getQuantity());
+                break;
+        }
+
+        // Устанавливаем задержку
+        canShoot = false;
+        shootCooldown = SHOOT_DELAY;
+
+        // Удаляем боеприпасы, если quantity == 0
+        if ((activeAmmo instanceof AmmoBullet && ((AmmoBullet)activeAmmo).getQuantity() == 0) ||
+                (activeAmmo instanceof AmmoRocket && ((AmmoRocket)activeAmmo).getQuantity() == 0) ||
+                (activeAmmo instanceof AmmoLaser && ((AmmoLaser)activeAmmo).getQuantity() == 0)) {
+            inventory.getItems().remove(activeAmmo);
+            activeWeapon = null;
+            System.out.println("Боеприпасы " + activeWeapon + " закончились");
+        }
     }
 
     public void shootRocket() {
-        projectileManager.addProjectile(new Rocket(x + (facingRight ? width : -14), y + height / 2, facingRight, rocketImage));
+        // Устаревший метод
     }
 
     public void shootLaser() {
-        projectileManager.addProjectile(new Laser(x + (facingRight ? width : -6), y + height / 2, facingRight, laserImage));
+        // Устаревший метод
     }
 
     public void render(GraphicsContext gc) {
@@ -202,6 +265,14 @@ public class Player {
 
     public void heal(int amount) {
         health = Math.min(maxHealth, health + amount);
+    }
+
+    public void setActiveWeapon(String weapon) {
+        this.activeWeapon = weapon;
+    }
+
+    public String getActiveWeapon() {
+        return activeWeapon;
     }
 
     public double getX() { return x; }

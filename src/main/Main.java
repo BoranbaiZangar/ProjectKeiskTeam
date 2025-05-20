@@ -111,6 +111,7 @@ public class Main extends Application {
         if (isGamePaused) return;
         player.update(keysPressed);
         level.update(player);
+        level.updatePickups(player);
         enemyManager.update(player, level.getTiles());
         projectileManager.updateProjectiles();
         checkCollisions();
@@ -154,6 +155,9 @@ public class Main extends Application {
         enemyManager.render(gc);
         gc.setFill(Color.WHITE);
         gc.fillText("❤️ Жизни: " + lives, 10, 25);
+        if (player.getActiveWeapon() != null) {
+            gc.fillText("Оружие: " + player.getActiveWeapon(), 10, 50);
+        }
     }
 
     private void stopGameLoop() {
@@ -267,14 +271,25 @@ public class Main extends Application {
             gameScene.setOnKeyPressed(e -> {
                 keysPressed.add(e.getCode());
                 switch (e.getCode()) {
-                    case F -> player.shoot();
-                    case R -> player.shootRocket();
-                    case Q -> player.shootLaser();
-                    case E -> {
+                    case F:
+                        player.shoot(); // Стрельба по одиночному нажатию
+                        break;
+                    case E:
                         isGamePaused = true;
                         showInventoryMenu(primaryStage);
-                    }
-                    case H -> level.revealHiddenTiles(player);
+                        break;
+                    case H:
+                        level.revealHiddenTiles(player);
+                        break;
+                    case DIGIT1:
+                        selectWeapon("bullet");
+                        break;
+                    case DIGIT2:
+                        selectWeapon("rocket");
+                        break;
+                    case DIGIT3:
+                        selectWeapon("laser");
+                        break;
                 }
             });
 
@@ -301,6 +316,19 @@ public class Main extends Application {
             };
         }
         updateGameScene();
+    }
+
+    private void selectWeapon(String weaponType) {
+        for (Item item : player.getInventory().getItems()) {
+            if ((item instanceof AmmoBullet && weaponType.equals("bullet")) ||
+                    (item instanceof AmmoRocket && weaponType.equals("rocket")) ||
+                    (item instanceof AmmoLaser && weaponType.equals("laser"))) {
+                item.use(player);
+                System.out.println("Выбрано оружие: " + weaponType);
+                return;
+            }
+        }
+        System.out.println("Оружие " + weaponType + " не найдено в инвентаре");
     }
 
     private void updateGameScene() {
@@ -424,6 +452,7 @@ public class Main extends Application {
         inventoryTitle.setY(100);
 
         List<Item> items = player.getInventory().getItems();
+        System.out.println("Предметы в инвентаре: " + items.size());
         for (int i = 0; i < items.size(); i++) {
             Item item = items.get(i);
             String itemText = item.getName();
@@ -431,6 +460,12 @@ public class Main extends Application {
                 itemText += ": Восстанавливает " + ((HealthPack) item).getHealAmount() + " здоровья";
             } else if (item instanceof Key) {
                 itemText += ": Открывает дверь " + ((Key) item).getDoorId();
+            } else if (item instanceof AmmoBullet) {
+                itemText += ": Оружие (Пули, " + ((AmmoBullet) item).getQuantity() + ")";
+            } else if (item instanceof AmmoRocket) {
+                itemText += ": Оружие (Ракеты, " + ((AmmoRocket) item).getQuantity() + ")";
+            } else if (item instanceof AmmoLaser) {
+                itemText += ": Оружие (Лазер, " + ((AmmoLaser) item).getQuantity() + ")";
             }
             Text itemLabel = new Text(itemText);
             itemLabel.setFill(Color.WHITE);
@@ -446,7 +481,9 @@ public class Main extends Application {
             useButton.setOnAction(e -> {
                 Item selectedItem = items.get(index);
                 selectedItem.use(player);
-                player.getInventory().getItems().remove(selectedItem);
+                if (!(selectedItem instanceof AmmoBullet || selectedItem instanceof AmmoRocket || selectedItem instanceof AmmoLaser)) {
+                    player.getInventory().getItems().remove(selectedItem);
+                }
                 showInventoryMenu(stage);
             });
             root.getChildren().add(useButton);

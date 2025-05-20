@@ -1,24 +1,27 @@
 package main;
 
-public class Key extends Item {
+import javafx.scene.image.Image;
+
+public class Key extends PickupItem {
     private String doorId;
 
-    public Key(String doorId) {
-        super("Key");
+    public Key(String name, double x, double y, Image image, String doorId) {
+        super(name, x, y, image);
         this.doorId = doorId;
-    }
-
-    public String getDoorId() {
-        return doorId;
     }
 
     @Override
     public void use(Player player) {
-        for (Door door : player.getLevel().getDoors()) {
-            if (door.getKeyId() != null && door.getKeyId().equals(doorId) && !door.isOpen()) {
+        Level level = player.getLevel();
+        for (Door door : level.getDoors()) {
+            if (door.getId() != null && door.getId().equals(doorId)) {
                 door.open();
                 break;
             }
         }
+    }
+
+    public String getDoorId() {
+        return doorId;
     }
 }

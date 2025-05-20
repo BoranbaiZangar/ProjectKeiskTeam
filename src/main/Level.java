@@ -15,6 +15,7 @@ public class Level {
     private List<Door> doors = new ArrayList<>();
     private List<Button> buttons = new ArrayList<>();
     private List<Enemy> enemies = new ArrayList<>();
+    private List<PickupItem> pickupItems = new ArrayList<>();
 
     private Image platformImg;
     private Image spikeImg;
@@ -23,6 +24,10 @@ public class Level {
     private Image doorImg;
     private Image buttonImg;
     private Image enemyImg;
+    private Image keyImg;
+    private Image ammoBulletImg;
+    private Image ammoRocketImg;
+    private Image ammoLaserImg;
 
     private boolean completed = false;
 
@@ -38,11 +43,16 @@ public class Level {
             doorImg = new Image(getClass().getResourceAsStream("/images/door.png"));
             buttonImg = new Image(getClass().getResourceAsStream("/images/button.png"));
             enemyImg = new Image(getClass().getResourceAsStream("/images/enemy.png"));
+            keyImg = loadImage("/images/key.png");
+            ammoBulletImg = loadImage("/images/ammo_bullet.png");
+            ammoRocketImg = loadImage("/images/ammo_rocket.png");
+            ammoLaserImg = loadImage("/images/ammo_laser.png");
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(
                     getClass().getResourceAsStream("/levels/" + filename)));
             String line;
             int y = 0;
+            int doorCount = 0;
 
             while ((line = reader.readLine()) != null) {
                 for (int x = 0; x < line.length(); x++) {
@@ -72,7 +82,8 @@ public class Level {
                             portalY = py;
                             break;
                         case 'D':
-                            doors.add(new Door(px, py, null, doorImg));
+                            doorCount++;
+                            doors.add(new Door(px, py, "door_" + doorCount, doorImg));
                             break;
                         case 'H':
                             tiles.add(new Tile(px, py, Tile.Type.PLATFORM, platformImg, true));
@@ -87,6 +98,18 @@ public class Level {
                         case 'X':
                             enemies.add(new PatrolEnemy(px, py, enemyImg, projectileManager));
                             break;
+                        case 'K':
+                            pickupItems.add(new Key("Key_" + doorCount, px, py, keyImg, "door_" + doorCount));
+                            break;
+                        case 'A':
+                            pickupItems.add(new AmmoBullet("Bullet Ammo", px, py, ammoBulletImg));
+                            break;
+                        case 'R':
+                            pickupItems.add(new AmmoRocket("Rocket Ammo", px, py, ammoRocketImg));
+                            break;
+                        case 'L':
+                            pickupItems.add(new AmmoLaser("Laser Ammo", px, py, ammoLaserImg));
+                            break;
                         default:
                             break;
                     }
@@ -100,10 +123,20 @@ public class Level {
                 }
             }
 
+            System.out.println("Загружено предметов: " + pickupItems.size());
             reader.close();
         } catch (Exception e) {
             System.err.println("Ошибка при загрузке уровня: " + filename);
             e.printStackTrace();
+        }
+    }
+
+    private Image loadImage(String path) {
+        try {
+            return new Image(getClass().getResourceAsStream(path));
+        } catch (Exception e) {
+            System.err.println("Не удалось загрузить изображение: " + path);
+            return null;
         }
     }
 
@@ -122,11 +155,23 @@ public class Level {
         for (Button button : buttons) {
             button.render(gc);
         }
+        for (PickupItem item : pickupItems) {
+            item.render(gc);
+        }
     }
 
     public void update(Player player) {
         for (Button button : buttons) {
             button.update(player);
+        }
+    }
+
+    public void updatePickups(Player player) {
+        for (PickupItem item : pickupItems) {
+            if (!item.isPickedUp() && item.checkCollision(player)) {
+                item.pickUp(player);
+                System.out.println("Попытка подбора: " + item.getName());
+            }
         }
     }
 
@@ -153,6 +198,10 @@ public class Level {
 
     public List<Tile> getTiles() {
         return tiles;
+    }
+
+    public List<PickupItem> getPickupItems() {
+        return pickupItems;
     }
 
     public int getStartX() {
