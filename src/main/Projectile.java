@@ -42,6 +42,9 @@ public abstract class Projectile {
     public boolean isOutOfBounds(double screenWidth, double screenHeight) {
         return x < 0 || x > screenWidth || y < 0 || y > screenHeight;
     }
+    public double getWidth() {
+        return width;
+    }
 
     public Bounds getBounds() {
         return new Rectangle(x, y, width, height).getBoundsInLocal();

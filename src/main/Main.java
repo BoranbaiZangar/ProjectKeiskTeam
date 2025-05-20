@@ -155,6 +155,7 @@ public class Main extends Application {
         enemyManager.render(gc);
         gc.setFill(Color.WHITE);
         gc.fillText("❤️ Жизни: " + lives, 10, 25);
+        gc.fillText("⭐ Очки: " + player.getScore(), 10, 75);
         if (player.getActiveWeapon() != null) {
             gc.fillText("Оружие: " + player.getActiveWeapon(), 10, 50);
         }
@@ -195,7 +196,7 @@ public class Main extends Application {
         Group root = new Group();
         Scene scene = new Scene(root, 400, 250, Color.BLACK);
 
-        Text winText = new Text("🎉 ПОБЕДА! Все уровни пройдены!");
+        Text winText = new Text("🎉 ПОБЕДА! Все уровни пройдены!\nОчки: " + player.getScore());
         winText.setFill(Color.WHITE);
         winText.setStyle("-fx-font-size: 20px;");
         winText.setX(40);
@@ -226,7 +227,7 @@ public class Main extends Application {
         Group root = new Group();
         Scene scene = new Scene(root, 400, 250, Color.BLACK);
 
-        Text loseText = new Text("💀 Вы проиграли! Все жизни потеряны.");
+        Text loseText = new Text("💀 Вы проиграли! Все жизни потеряны.\nОчки: " + player.getScore());
         loseText.setFill(Color.RED);
         loseText.setStyle("-fx-font-size: 20px;");
         loseText.setX(30);
@@ -255,6 +256,7 @@ public class Main extends Application {
         lives = 3;
         keysPressed.clear();
         backgroundMusic.play();
+        player.setScore(0);
         loadLevel(levelIndex);
         gameLoop.start();
         primaryStage.setScene(gameScene);
@@ -272,7 +274,7 @@ public class Main extends Application {
                 keysPressed.add(e.getCode());
                 switch (e.getCode()) {
                     case F:
-                        player.shoot(); // Стрельба по одиночному нажатию
+                        player.shoot();
                         break;
                     case E:
                         isGamePaused = true;
@@ -458,8 +460,6 @@ public class Main extends Application {
             String itemText = item.getName();
             if (item instanceof HealthPack) {
                 itemText += ": Восстанавливает " + ((HealthPack) item).getHealAmount() + " здоровья";
-            } else if (item instanceof Key) {
-                itemText += ": Открывает дверь " + ((Key) item).getDoorId();
             } else if (item instanceof AmmoBullet) {
                 itemText += ": Оружие (Пули, " + ((AmmoBullet) item).getQuantity() + ")";
             } else if (item instanceof AmmoRocket) {

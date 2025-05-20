@@ -16,12 +16,13 @@ public class Player {
     private final double height = 35;
     private int health = 100;
     private int maxHealth = 100;
+    private int score = 0; // Поле для очков
 
     private double velocityY = 0;
     private boolean canJump = false;
-    private boolean canShoot = true; // Флаг для ограничения стрельбы
-    private double shootCooldown = 0; // Таймер задержки
-    private static final double SHOOT_DELAY = 0.5; // Задержка в секундах
+    private boolean canShoot = true;
+    private double shootCooldown = 0;
+    private static final double SHOOT_DELAY = 0.5;
 
     private final double MOVE_SPEED = 2.5;
     private final double JUMP_FORCE = -12;
@@ -91,9 +92,8 @@ public class Player {
             jumpSound.play();
         }
 
-        // Обновление таймера задержки стрельбы
         if (shootCooldown > 0) {
-            shootCooldown -= 1.0 / 60; // Предполагаем 60 FPS
+            shootCooldown -= 1.0 / 60;
             if (shootCooldown <= 0) {
                 canShoot = true;
             }
@@ -119,11 +119,11 @@ public class Player {
             if (tile.getType() == Tile.Type.DISAPPEARING) {
                 double dx = tile.getX();
                 double dy = tile.getY();
-                double foodX = x + width / 2;
-                double foodY = y + height + 1;
+                double footX2 = x + width / 2;
+                double footY2 = y + height + 1;
 
-                boolean onTop = foodX > dx && foodX < dx + Level.TILE_SIZE &&
-                        foodY > dy && foodY < dy + Level.TILE_SIZE;
+                boolean onTop = footX2 > dx && footX2 < dx + Level.TILE_SIZE &&
+                        footY2 > dy && footY2 < dy + Level.TILE_SIZE;
 
                 if (onTop) {
                     tile.triggerDisappear();
@@ -161,7 +161,6 @@ public class Player {
         double offsetX = facingRight ? width : -20;
         PickupItem activeAmmo = null;
 
-        // Находим активные боеприпасы в инвентаре
         for (Item item : inventory.getItems()) {
             if ((item instanceof AmmoBullet && activeWeapon.equals("bullet")) ||
                     (item instanceof AmmoRocket && activeWeapon.equals("rocket")) ||
@@ -191,17 +190,15 @@ public class Player {
                 System.out.println("Выстрел ракетой, осталось: " + ((AmmoRocket)activeAmmo).getQuantity());
                 break;
             case "laser":
-                projectileManager.addProjectile(new Laser(x + (facingRight ? width : -6), y + height / 2, facingRight, laserImage));
+                projectileManager.addProjectile(new Laser(x + (facingRight ? width : -90), y + height / 2, facingRight, laserImage));
                 ((AmmoLaser)activeAmmo).decreaseQuantity();
                 System.out.println("Выстрел лазером, осталось: " + ((AmmoLaser)activeAmmo).getQuantity());
                 break;
         }
 
-        // Устанавливаем задержку
         canShoot = false;
         shootCooldown = SHOOT_DELAY;
 
-        // Удаляем боеприпасы, если quantity == 0
         if ((activeAmmo instanceof AmmoBullet && ((AmmoBullet)activeAmmo).getQuantity() == 0) ||
                 (activeAmmo instanceof AmmoRocket && ((AmmoRocket)activeAmmo).getQuantity() == 0) ||
                 (activeAmmo instanceof AmmoLaser && ((AmmoLaser)activeAmmo).getQuantity() == 0)) {
@@ -247,7 +244,7 @@ public class Player {
 
         if (level != null && level.getDoors() != null) {
             for (Door door : level.getDoors()) {
-                if (door.checkCollision(this, inventory)) {
+                if (door.checkCollision(this)) { // Исправленный вызов
                     return true;
                 }
             }
@@ -265,6 +262,20 @@ public class Player {
 
     public void heal(int amount) {
         health = Math.min(maxHealth, health + amount);
+    }
+
+    public void addScore(int points) {
+        score += points;
+        System.out.println("Очки игрока: " + score);
+    }
+
+    public void setScore(int newScore) {
+        this.score = Math.max(0, newScore); // Защита от отрицательных значений
+        System.out.println("Установлены очки: " + score);
+    }
+
+    public int getScore() {
+        return score;
     }
 
     public void setActiveWeapon(String weapon) {

@@ -22,16 +22,14 @@ public class ProjectileManager {
 
     public void updateProjectiles() {
         Iterator<Projectile> iterator = projectiles.iterator();
-
         while (iterator.hasNext()) {
             Projectile p = iterator.next();
             p.update();
-
-            if (p.getX() < 0 || p.getX() > Main.WIDTH) {
+            // Проверяем, полностью ли снаряд вышел за экран
+            if (p.getX() + p.getWidth() < 0 || p.getX() > Main.WIDTH) {
                 iterator.remove();
                 continue;
             }
-
             if (tiles != null) {
                 for (Tile tile : tiles) {
                     if (tile.getType() == Tile.Type.PLATFORM || tile.getType() == Tile.Type.ICE) {

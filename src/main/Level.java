@@ -99,7 +99,7 @@ public class Level {
                             enemies.add(new PatrolEnemy(px, py, enemyImg, projectileManager));
                             break;
                         case 'K':
-                            pickupItems.add(new Key("Key_" + doorCount, px, py, keyImg, "door_" + doorCount));
+                            pickupItems.add(new Key("Key", px, py, keyImg, 100)); // Ключ дает 100 очков
                             break;
                         case 'A':
                             pickupItems.add(new AmmoBullet("Bullet Ammo", px, py, ammoBulletImg));

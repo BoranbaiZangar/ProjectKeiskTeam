@@ -7,7 +7,7 @@ public class PickupItem extends Item {
     private double x;
     private double y;
     private Image image;
-    private boolean pickedUp;
+    boolean pickedUp;
 
     public PickupItem(String name, double x, double y, Image image) {
         super(name);
