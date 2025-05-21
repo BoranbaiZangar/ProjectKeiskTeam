@@ -1,106 +1,158 @@
 package main;
 
 import javafx.animation.AnimationTimer;
+import javafx.animation.FadeTransition;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
+import javafx.scene.input.KeyCode;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
-import javafx.stage.Stage;
-import javafx.scene.input.KeyCode;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
+import javafx.stage.Stage;
+import javafx.util.Duration;
 
+import java.io.*;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class Main extends Application {
 
+    // Константы для размеров окна
     public static final int WIDTH = 800;
     public static final int HEIGHT = 600;
-    private static final int DEATH_DELAY = 800;
+    private static final int DEATH_DELAY_SECONDS = 2; // Задержка в секундах перед возрождением
+    private static final int FADE_DURATION_MS = 500; // Длительность анимации затемнения
 
+    // Пути к ресурсам
+    private static final String BACKGROUND_IMAGE_PATH = "/images/background.png";
+    private static final String PLAYER_IMAGE_PATH = "/images/player.png";
+    private static final String PLAYER_RIGHT_IMAGE_PATH = "/images/player_right.png";
+    private static final String PLAYER_LEFT_IMAGE_PATH = "/images/player_left.png";
+    private static final String ROCKET_IMAGE_PATH = "/images/rocket.png";
+    private static final String LASER_IMAGE_PATH = "/images/laser.png";
+    private static final String BULLET_IMAGE_PATH = "/images/bullet.png";
+    private static final String BACKGROUND_MUSIC_PATH = "/sounds/background-music.mp3";
+
+    // Файл для сохранения прогресса
+    private static final String PROGRESS_FILE = "progress.dat";
+
+    // Состояние игры
     private boolean isMusicMuted = false;
     private boolean isSoundMuted = false;
+    private boolean isGamePaused = false;
+    private int lives = 3;
+    private int levelIndex = 0;
+    private int highScore = 0; // Рекорд очков
 
+    // Объекты игры
     private final Set<KeyCode> keysPressed = new HashSet<>();
     private Player player;
     private Level level;
     private Portal portal;
-    private boolean isGamePaused = false;
+    private Inventory playerInventory;
+    private EnemyManager enemyManager;
+    private ProjectileManager projectileManager;
+
+    // Ресурсы
     private Image backgroundImage;
     private MediaPlayer backgroundMusic;
-    private Inventory playerInventory;
+    private Image playerImage;
+    private Image playerRight;
+    private Image playerLeft;
+    private Image rocketImage;
+    private Image laserImage;
+    private Image bulletImage;
 
-    private final List<String> levelNames = List.of("level1.txt", "level2.txt", "level3.txt", "level4.txt");
-    private int levelIndex = 0;
-
+    // JavaFX компоненты
     private GraphicsContext gc;
     private AnimationTimer gameLoop;
-
-    private int lives = 3;
-
     private Scene menuScene;
     private Scene settingsScene;
     private Scene inventoryScene;
     private Scene gameScene;
     private Group gameRoot;
     private Stage primaryStage;
-
-    private Image laserImage;
-    private Image rocketImage;
-    private Image playerImage;
-    private Image bulletImage;
-    private Image playerRight;
-    private Image playerLeft;
-
-    private EnemyManager enemyManager;
-    private ProjectileManager projectileManager;
+    private final List<String> levelNames = List.of("level1.txt", "level2.txt", "level3.txt", "level4.txt");
 
     @Override
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
         primaryStage.setTitle("Space Escape");
         primaryStage.setResizable(false);
-        projectileManager = new ProjectileManager(this); // Передаём this
-        playerInventory = new Inventory();
 
+        // Загрузка ресурсов
+        loadResources();
+
+        // Инициализация музыки
         try {
-            playerImage = new Image(getClass().getResourceAsStream("/images/player.png"));
-            playerRight = new Image(getClass().getResourceAsStream("/images/player_right.png"));
-            playerLeft = new Image(getClass().getResourceAsStream("/images/player_left.png"));
-            rocketImage = new Image(getClass().getResourceAsStream("/images/rocket.png"));
-            laserImage = new Image(getClass().getResourceAsStream("/images/laser.png"));
-            bulletImage = new Image(getClass().getResourceAsStream("/images/bullet.png"));
-            backgroundImage = new Image(getClass().getResourceAsStream("/images/background.png"));
+            Media media = new Media(getClass().getResource(BACKGROUND_MUSIC_PATH).toString());
+            backgroundMusic = new MediaPlayer(media);
+            backgroundMusic.setCycleCount(MediaPlayer.INDEFINITE);
+            if (!isMusicMuted) backgroundMusic.play();
         } catch (Exception e) {
-            System.err.println("Ошибка загрузки изображений: " + e.getMessage());
+            System.err.println("Ошибка загрузки музыки: " + e.getMessage());
             e.printStackTrace();
         }
 
-        Media media = new Media(getClass().getResource("/sounds/background-music.mp3").toString());
-        backgroundMusic = new MediaPlayer(media);
-        backgroundMusic.setCycleCount(MediaPlayer.INDEFINITE);
-        backgroundMusic.play();
+        // Инициализация объектов
+        projectileManager = new ProjectileManager(this);
+        playerInventory = new Inventory();
 
-        loadLevel(levelIndex);
+        // Загрузка сохранённого прогресса
+        loadProgress();
+
+        // Показываем главное меню
         showMainMenu(primaryStage);
         primaryStage.show();
+
+        // Сохранение прогресса при закрытии приложения
+        primaryStage.setOnCloseRequest(e -> saveProgress());
     }
 
-    private void loadLevel(int index) {
+    private void loadResources() {
+        try {
+            backgroundImage = new Image(getClass().getResourceAsStream(BACKGROUND_IMAGE_PATH));
+            playerImage = new Image(getClass().getResourceAsStream(PLAYER_IMAGE_PATH));
+            playerRight = new Image(getClass().getResourceAsStream(PLAYER_RIGHT_IMAGE_PATH));
+            playerLeft = new Image(getClass().getResourceAsStream(PLAYER_LEFT_IMAGE_PATH));
+            rocketImage = new Image(getClass().getResourceAsStream(ROCKET_IMAGE_PATH));
+            laserImage = new Image(getClass().getResourceAsStream(LASER_IMAGE_PATH));
+            bulletImage = new Image(getClass().getResourceAsStream(BULLET_IMAGE_PATH));
+        } catch (Exception e) {
+            System.err.println("Ошибка загрузки изображений: " + e.getMessage());
+            e.printStackTrace();
+            System.exit(1); // Прекращаем выполнение, если ресурсы не загружены
+        }
+    }
+
+    private void loadLevel(int index, boolean isRespawn) {
+        levelIndex = index;
         level = new Level(levelNames.get(index), projectileManager);
-        int currentHealth = (player != null) ? player.getHealth() : 100;
-        String currentWeapon = (player != null) ? player.getActiveWeapon() : null;
-        int currentScore = (player != null) ? player.getScore() : 0;
+
+        // Сохраняем текущие параметры игрока, если это не возрождение
+        int currentHealth = (player != null && player.getHealth() > 0 && !isRespawn) ? player.getHealth() : 100;
+        String currentWeapon = (player != null && !isRespawn) ? player.getActiveWeapon() : null;
+        int currentScore = (player != null && !isRespawn) ? player.getScore() : 0;
+
+        if (isRespawn) {
+            playerInventory.getItems().clear();
+            System.out.println("Инвентарь очищен при возрождении");
+            currentScore = 0; // Сбрасываем очки при возрождении
+        }
 
         player = new Player((double) level.getStartX(), (double) level.getStartY(), level,
-                bulletImage, laserImage, rocketImage,
-                playerLeft, playerRight, playerInventory, projectileManager);
+                bulletImage, laserImage, rocketImage, playerLeft, playerRight, playerInventory, projectileManager);
         player.setHealth(currentHealth);
         player.setActiveWeapon(currentWeapon);
         player.setScore(currentScore);
@@ -109,34 +161,46 @@ public class Main extends Application {
         projectileManager.setEnemies(level.getEnemies());
         projectileManager.setPlayer(player);
         portal = new Portal(level.getPortalX(), level.getPortalY());
-        enemyManager = new EnemyManager(this); // Передаём this
+        enemyManager = new EnemyManager(this);
         for (Enemy enemy : level.getEnemies()) {
             enemyManager.addEnemy(enemy);
         }
-        if (gameScene != null) {
+
+        // Создаём или обновляем игровую сцену
+        if (gameScene == null) {
+            createGameScene();
+        } else {
             updateGameScene();
         }
+        primaryStage.setScene(gameScene);
+        startGameLoop();
     }
 
     public void loseLife(String reason) {
-        System.out.println(reason + ". Осталось жизней: " + (lives - 1));
         lives--;
-
+        System.out.println(reason + ". Осталось жизней: " + lives);
         stopGameLoop();
 
         if (lives <= 0) {
             backgroundMusic.stop();
             showLoseScreen();
         } else {
-            new Thread(() -> {
-                try {
-                    Thread.sleep(DEATH_DELAY);
-                } catch (InterruptedException ignored) {}
-                javafx.application.Platform.runLater(() -> {
-                    loadLevel(levelIndex);
-                    gameLoop.start();
-                });
-            }).start();
+            // Анимация затемнения перед возрождением
+            FadeTransition fadeOut = new FadeTransition(Duration.millis(FADE_DURATION_MS), gameRoot);
+            fadeOut.setFromValue(1.0);
+            fadeOut.setToValue(0.0);
+            fadeOut.setOnFinished(e -> {
+                Timeline delay = new Timeline(new KeyFrame(Duration.seconds(DEATH_DELAY_SECONDS), event -> {
+                    loadLevel(levelIndex, true);
+                    // Анимация появления после возрождения
+                    FadeTransition fadeIn = new FadeTransition(Duration.millis(FADE_DURATION_MS), gameRoot);
+                    fadeIn.setFromValue(0.0);
+                    fadeIn.setToValue(1.0);
+                    fadeIn.play();
+                }));
+                delay.play();
+            });
+            fadeOut.play();
         }
     }
 
@@ -149,6 +213,9 @@ public class Main extends Application {
         projectileManager.updateProjectiles();
         checkCollisions();
         checkLevelCompletion();
+
+        // Обновляем рекорд
+        highScore = Math.max(highScore, player.getScore());
     }
 
     private void checkCollisions() {
@@ -167,7 +234,7 @@ public class Main extends Application {
         if (portal.checkCollision(player)) {
             levelIndex++;
             if (levelIndex < levelNames.size()) {
-                loadLevel(levelIndex);
+                loadLevel(levelIndex, false);
             } else {
                 backgroundMusic.stop();
                 showWinScreen();
@@ -186,20 +253,47 @@ public class Main extends Application {
         portal.render(gc);
         player.render(gc);
         enemyManager.render(gc);
+        projectileManager.render(gc);
+
+        // Настройка стиля текста с тенью
+        DropShadow shadow = new DropShadow(2, 2, 2, Color.BLACK);
+        gc.setEffect(shadow);
+        gc.setFont(new Font("Arial", 20));
         gc.setFill(Color.WHITE);
         gc.fillText("❤️ Жизни: " + lives, 10, 25);
-        gc.fillText("⭐ Очки: " + player.getScore(), 10, 75);
+        gc.fillText("⭐ Очки: " + player.getScore(), 10, 50);
+        gc.fillText("🏆 Рекорд: " + highScore, 10, 75);
+        gc.fillText("🌍 Уровень: " + (levelIndex + 1) + "/" + levelNames.size(), 10, 100);
         if (player.getActiveWeapon() != null) {
-            gc.fillText("Оружие: " + player.getActiveWeapon(), 10, 50);
+            gc.fillText("🔫 Оружие: " + player.getActiveWeapon(), 10, 125);
         }
-        // Полоска здоровья игрока
+
+        // Полоса здоровья
+        gc.setEffect(null); // Убираем тень для полосы здоровья
         gc.setFill(Color.RED);
         double healthBarWidth = 100 * ((double) player.getHealth() / 100);
-        gc.fillRect(10, 100, healthBarWidth, 10);
+        gc.fillRect(10, 140, healthBarWidth, 10);
         gc.setStroke(Color.BLACK);
-        gc.strokeRect(10, 100, 100, 10);
+        gc.strokeRect(10, 140, 100, 10);
+        gc.setEffect(shadow);
         gc.setFill(Color.WHITE);
-        gc.fillText("HP: " + player.getHealth(), 120, 108);
+        gc.fillText("HP: " + player.getHealth(), 120, 148);
+        gc.setEffect(null);
+    }
+
+    private void startGameLoop() {
+        if (gameLoop == null) {
+            gameLoop = new AnimationTimer() {
+                @Override
+                public void handle(long now) {
+                    if (!isGamePaused) {
+                        update();
+                        render();
+                    }
+                }
+            };
+        }
+        gameLoop.start();
     }
 
     private void stopGameLoop() {
@@ -215,13 +309,13 @@ public class Main extends Application {
         Group root = new Group();
         Scene scene = new Scene(root, 400, 250, Color.BLACK);
 
-        Text winText = new Text("🎉 ПОБЕДА! Все уровни пройдены!\nОчки: " + player.getScore());
-        winText.setFill(Color.WHITE);
+        Text winText = new Text("🎉 ПОБЕДА! Все уровни пройдены!\nОчки: " + player.getScore() + "\nРекорд: " + highScore);
+        winText.setFill(Color.GREEN);
         winText.setStyle("-fx-font-size: 20px;");
         winText.setX(40);
         winText.setY(100);
 
-        main.Button restartButton = new main.Button("🔁 Начать заново");
+        Button restartButton = new Button("🔁 Начать заново");
         restartButton.setLayoutX(80);
         restartButton.setLayoutY(150);
         restartButton.setOnAction(e -> {
@@ -229,10 +323,13 @@ public class Main extends Application {
             restartGame();
         });
 
-        main.Button exitButton = new main.Button("🚪 Выйти");
+        Button exitButton = new Button("🚪 Выйти");
         exitButton.setLayoutX(230);
         exitButton.setLayoutY(150);
-        exitButton.setOnAction(e -> System.exit(0));
+        exitButton.setOnAction(e -> {
+            saveProgress();
+            System.exit(0);
+        });
 
         root.getChildren().addAll(winText, restartButton, exitButton);
         winStage.setScene(scene);
@@ -246,13 +343,13 @@ public class Main extends Application {
         Group root = new Group();
         Scene scene = new Scene(root, 400, 250, Color.BLACK);
 
-        Text loseText = new Text("💀 Вы проиграли! Все жизни потеряны.\nОчки: " + player.getScore());
+        Text loseText = new Text("💀 Вы проиграли! Все жизни потеряны.\nОчки: " + player.getScore() + "\nРекорд: " + highScore);
         loseText.setFill(Color.RED);
         loseText.setStyle("-fx-font-size: 20px;");
         loseText.setX(30);
         loseText.setY(100);
 
-        main.Button restartButton = new main.Button("🔁 Начать заново");
+        Button restartButton = new Button("🔁 Начать заново");
         restartButton.setLayoutX(80);
         restartButton.setLayoutY(150);
         restartButton.setOnAction(e -> {
@@ -260,10 +357,13 @@ public class Main extends Application {
             restartGame();
         });
 
-        main.Button exitButton = new main.Button("🚪 Выйти");
+        Button exitButton = new Button("🚪 Выйти");
         exitButton.setLayoutX(230);
         exitButton.setLayoutY(150);
-        exitButton.setOnAction(e -> System.exit(0));
+        exitButton.setOnAction(e -> {
+            saveProgress();
+            System.exit(0);
+        });
 
         root.getChildren().addAll(loseText, restartButton, exitButton);
         loseStage.setScene(scene);
@@ -273,70 +373,63 @@ public class Main extends Application {
     private void restartGame() {
         levelIndex = 0;
         lives = 3;
+        highScore = 0; // Сбрасываем рекорд при полном перезапуске
         keysPressed.clear();
-        backgroundMusic.play();
+        if (!isMusicMuted) backgroundMusic.play();
         playerInventory = new Inventory();
-        loadLevel(levelIndex);
-        gameLoop.start();
+        loadLevel(levelIndex, false);
         primaryStage.setScene(gameScene);
+        startGameLoop();
     }
 
     private void createGameScene() {
-        if (gameScene == null) {
-            gameRoot = new Group();
-            gameScene = new Scene(gameRoot);
-            Canvas canvas = new Canvas(WIDTH, HEIGHT);
-            gameRoot.getChildren().add(canvas);
-            gc = canvas.getGraphicsContext2D();
+        gameRoot = new Group();
+        gameScene = new Scene(gameRoot);
+        Canvas canvas = new Canvas(WIDTH, HEIGHT);
+        gameRoot.getChildren().add(canvas);
+        gc = canvas.getGraphicsContext2D();
 
-            gameScene.setOnKeyPressed(e -> {
-                keysPressed.add(e.getCode());
-                switch (e.getCode()) {
-                    case F:
-                        player.shoot();
-                        break;
-                    case E:
-                        isGamePaused = true;
-                        showInventoryMenu(primaryStage);
-                        break;
-                    case H:
-                        level.revealHiddenTiles(player);
-                        break;
-                    case DIGIT1:
-                        selectWeapon("bullet");
-                        break;
-                    case DIGIT2:
-                        selectWeapon("rocket");
-                        break;
-                    case DIGIT3:
-                        selectWeapon("laser");
-                        break;
-                }
-            });
+        gameScene.setOnKeyPressed(e -> {
+            keysPressed.add(e.getCode());
+            switch (e.getCode()) {
+                case F:
+                    player.shoot();
+                    break;
+                case E:
+                    isGamePaused = true;
+                    stopGameLoop();
+                    showInventoryMenu(primaryStage);
+                    break;
+                case H:
+                    level.revealHiddenTiles(player);
+                    break;
+                case DIGIT1:
+                    selectWeapon("bullet");
+                    break;
+                case DIGIT2:
+                    selectWeapon("rocket");
+                    break;
+                case DIGIT3:
+                    selectWeapon("laser");
+                    break;
+            }
+        });
 
-            gameScene.setOnKeyReleased(e -> keysPressed.remove(e.getCode()));
+        gameScene.setOnKeyReleased(e -> keysPressed.remove(e.getCode()));
 
-            main.Button pauseButton = new main.Button("⏸ Пауза");
-            pauseButton.setLayoutX(WIDTH - 90);
-            pauseButton.setLayoutY(10);
-            pauseButton.setOnAction(e -> {
-                isGamePaused = !isGamePaused;
-                pauseButton.setText(isGamePaused ? "▶ Возобновить" : "⏸ Пауза");
-            });
-            pauseButton.setFocusTraversable(false);
+        Button pauseButton = new Button("⏸ Пауза");
+        pauseButton.setLayoutX(WIDTH - 90);
+        pauseButton.setLayoutY(10);
+        pauseButton.setStyle("-fx-font-size: 14px; -fx-background-color: #555555; -fx-text-fill: white;");
+        pauseButton.setOnAction(e -> {
+            isGamePaused = !isGamePaused;
+            pauseButton.setText(isGamePaused ? "▶ Возобновить" : "⏸ Пауза");
+            if (!isGamePaused) startGameLoop();
+            else stopGameLoop();
+        });
+        pauseButton.setFocusTraversable(false);
 
-            gameRoot.getChildren().add(pauseButton);
-
-            gameLoop = new AnimationTimer() {
-                @Override public void handle(long now) {
-                    if (!isGamePaused) {
-                        update();
-                        render();
-                    }
-                }
-            };
-        }
-        updateGameScene();
+        gameRoot.getChildren().add(pauseButton);
     }
 
     private void selectWeapon(String weaponType) {
@@ -350,6 +443,7 @@ public class Main extends Application {
             }
         }
         System.out.println("Оружие " + weaponType + " не найдено в инвентаре");
+        player.setActiveWeapon(null);
     }
 
     private void updateGameScene() {
@@ -366,8 +460,6 @@ public class Main extends Application {
         root.getChildren().add(canvas);
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
-        if (backgroundImage == null)
-            backgroundImage = new Image(getClass().getResourceAsStream("/images/background.png"));
         gc.drawImage(backgroundImage, 0, 0, WIDTH, HEIGHT);
 
         Text title = new Text("🌌 SPACE ESCAPE");
@@ -375,24 +467,31 @@ public class Main extends Application {
         title.setStyle("-fx-font-size: 36px; -fx-font-weight: bold;");
         title.setX(250);
         title.setY(150);
+        title.setEffect(new DropShadow(5, 3, 3, Color.BLACK));
 
-        main.Button startButton = new main.Button("▶ Начать игру");
+        Button startButton = new Button("▶ Начать игру");
         startButton.setLayoutX(330);
         startButton.setLayoutY(220);
+        startButton.setStyle("-fx-font-size: 16px; -fx-background-color: #444444; -fx-text-fill: white;");
         startButton.setOnAction(e -> {
-            createGameScene();
+            loadLevel(levelIndex, false);
             stage.setScene(gameScene);
-            gameLoop.start();
+            startGameLoop();
         });
 
-        main.Button exitButton = new main.Button("❌ Выйти");
+        Button exitButton = new Button("❌ Выйти");
         exitButton.setLayoutX(345);
         exitButton.setLayoutY(270);
-        exitButton.setOnAction(e -> System.exit(0));
+        exitButton.setStyle("-fx-font-size: 16px; -fx-background-color: #444444; -fx-text-fill: white;");
+        exitButton.setOnAction(e -> {
+            saveProgress();
+            System.exit(0);
+        });
 
-        main.Button settingsButton = new main.Button("⚙ Настройки");
+        Button settingsButton = new Button("⚙ Настройки");
         settingsButton.setLayoutX(330);
         settingsButton.setLayoutY(320);
+        settingsButton.setStyle("-fx-font-size: 16px; -fx-background-color: #444444; -fx-text-fill: white;");
         settingsButton.setOnAction(e -> showSettingsMenu(stage));
 
         root.getChildren().addAll(title, startButton, exitButton, settingsButton);
@@ -414,42 +513,34 @@ public class Main extends Application {
         settingsTitle.setStyle("-fx-font-size: 30px;");
         settingsTitle.setX(300);
         settingsTitle.setY(100);
+        settingsTitle.setEffect(new DropShadow(3, 2, 2, Color.BLACK));
 
-        main.Button soundButton = new main.Button(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
+        Button soundButton = new Button(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
         soundButton.setLayoutX(300);
         soundButton.setLayoutY(150);
+        soundButton.setStyle("-fx-font-size: 16px; -fx-background-color: #444444; -fx-text-fill: white;");
         soundButton.setOnAction(e -> {
             isSoundMuted = !isSoundMuted;
-            if (isSoundMuted) {
-                backgroundMusic.setMute(true);
-                if (player != null) {
-                    player.setJumpSoundMuted(true);
-                }
-            } else {
-                backgroundMusic.setMute(false);
-                if (player != null) {
-                    player.setJumpSoundMuted(false);
-                }
+            if (player != null) {
+                player.setJumpSoundMuted(isSoundMuted);
             }
             soundButton.setText(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
         });
 
-        main.Button musicButton = new main.Button(isMusicMuted ? "🎶 Включить музыку" : "🔇 Выключить музыку");
+        Button musicButton = new Button(isMusicMuted ? "🎶 Включить музыку" : "🔇 Выключить музыку");
         musicButton.setLayoutX(300);
         musicButton.setLayoutY(200);
+        musicButton.setStyle("-fx-font-size: 16px; -fx-background-color: #444444; -fx-text-fill: white;");
         musicButton.setOnAction(e -> {
             isMusicMuted = !isMusicMuted;
-            if (isMusicMuted) {
-                backgroundMusic.setMute(true);
-            } else {
-                backgroundMusic.setMute(false);
-            }
+            backgroundMusic.setMute(isMusicMuted);
             musicButton.setText(isMusicMuted ? "🎶 Включить музыку" : "🔇 Выключить музыку");
         });
 
-        main.Button backButton = new main.Button("↩ Назад");
+        Button backButton = new Button("↩ Назад");
         backButton.setLayoutX(350);
         backButton.setLayoutY(270);
+        backButton.setStyle("-fx-font-size: 16px; -fx-background-color: #444444; -fx-text-fill: white;");
         backButton.setOnAction(e -> stage.setScene(menuScene));
 
         root.getChildren().addAll(settingsTitle, soundButton, musicButton, backButton);
@@ -471,6 +562,7 @@ public class Main extends Application {
         inventoryTitle.setStyle("-fx-font-size: 30px;");
         inventoryTitle.setX(300);
         inventoryTitle.setY(100);
+        inventoryTitle.setEffect(new DropShadow(3, 2, 2, Color.BLACK));
 
         List<Item> items = player.getInventory().getItems();
         System.out.println("Предметы в инвентаре: " + items.size());
@@ -493,9 +585,10 @@ public class Main extends Application {
             itemLabel.setY(150 + i * 30);
             root.getChildren().add(itemLabel);
 
-            main.Button useButton = new main.Button("Использовать");
+            Button useButton = new Button("Использовать");
             useButton.setLayoutX(500);
             useButton.setLayoutY(130 + i * 30);
+            useButton.setStyle("-fx-font-size: 14px; -fx-background-color: #444444; -fx-text-fill: white;");
             int index = i;
             useButton.setOnAction(e -> {
                 Item selectedItem = items.get(index);
@@ -508,12 +601,14 @@ public class Main extends Application {
             root.getChildren().add(useButton);
         }
 
-        main.Button backButton = new Button("↩ Назад");
+        Button backButton = new Button("↩ Назад");
         backButton.setLayoutX(350);
         backButton.setLayoutY(HEIGHT - 50);
+        backButton.setStyle("-fx-font-size: 16px; -fx-background-color: #444444; -fx-text-fill: white;");
         backButton.setOnAction(e -> {
             isGamePaused = false;
             stage.setScene(gameScene);
+            startGameLoop();
         });
 
         root.getChildren().addAll(inventoryTitle, backButton);
@@ -523,8 +618,38 @@ public class Main extends Application {
             if (e.getCode() == KeyCode.E) {
                 isGamePaused = false;
                 stage.setScene(gameScene);
+                startGameLoop();
             }
         });
+    }
+
+    private void saveProgress() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(PROGRESS_FILE))) {
+            oos.writeInt(levelIndex);
+            oos.writeInt(highScore);
+            oos.writeBoolean(isMusicMuted);
+            oos.writeBoolean(isSoundMuted);
+            System.out.println("Прогресс сохранён: Уровень " + levelIndex + ", Рекорд " + highScore);
+        } catch (IOException e) {
+            System.err.println("Ошибка сохранения прогресса: " + e.getMessage());
+        }
+    }
+
+    private void loadProgress() {
+        File file = new File(PROGRESS_FILE);
+        if (file.exists()) {
+            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(PROGRESS_FILE))) {
+                levelIndex = ois.readInt();
+                highScore = ois.readInt();
+                isMusicMuted = ois.readBoolean();
+                isSoundMuted = ois.readBoolean();
+                System.out.println("Прогресс загружен: Уровень " + levelIndex + ", Рекорд " + highScore);
+            } catch (IOException e) {
+                System.err.println("Ошибка загрузки прогресса: " + e.getMessage());
+                levelIndex = 0;
+                highScore = 0;
+            }
+        }
     }
 
     public static void main(String[] args) {

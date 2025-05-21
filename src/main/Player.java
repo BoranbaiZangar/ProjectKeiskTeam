@@ -63,7 +63,9 @@ public class Player {
         this.bulletImage = bulletImage;
         this.laserImage = laserImage;
         this.rocketImage = rocketImage;
-        this.projectileManager = projectileManager; // Используем переданный ProjectileManager
+
+        this.projectileManager = projectileManager;
+
         this.jumpSound = new AudioClip(getClass().getResource("/sounds/jump.wav").toString());
         this.projectileManager.setTiles(this.tiles);
         this.inventory = inventory != null ? inventory : new Inventory();
@@ -209,12 +211,16 @@ public class Player {
         }
     }
 
+    // Устаревший метод, сохранён для совместимости
+    @Deprecated
     public void shootRocket() {
-        // Устаревший метод
+        // Метод не используется, так как стрельба реализована через shoot()
     }
 
+    // Устаревший метод, сохранён для совместимости
+    @Deprecated
     public void shootLaser() {
-        // Устаревший метод
+        // Метод не используется, так как стрельба реализована через shoot()
     }
 
     public void render(GraphicsContext gc) {
