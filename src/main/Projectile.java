@@ -39,11 +39,16 @@ public abstract class Projectile {
         return y;
     }
 
-    public boolean isOutOfBounds(double screenWidth, double screenHeight) {
-        return x < 0 || x > screenWidth || y < 0 || y > screenHeight;
-    }
     public double getWidth() {
         return width;
+    }
+
+    public double getHeight() {
+        return height;
+    }
+
+    public boolean isOutOfBounds(double screenWidth, double screenHeight) {
+        return x < 0 || x > screenWidth || y < 0 || y > screenHeight;
     }
 
     public Bounds getBounds() {

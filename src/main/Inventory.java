@@ -10,8 +10,10 @@ public class Inventory {
     public boolean addItem(Item item) {
         if (items.size() < maxSlots) {
             items.add(item);
+            System.out.println("Добавлен предмет: " + item.getName());
             return true;
         }
+        System.out.println("Инвентарь полон! Нельзя добавить: " + item.getName());
         return false;
     }
 

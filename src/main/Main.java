@@ -13,7 +13,6 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.text.Text;
-import javafx.scene.control.Button;
 
 import java.util.HashSet;
 import java.util.List;
@@ -67,7 +66,7 @@ public class Main extends Application {
         this.primaryStage = primaryStage;
         primaryStage.setTitle("Space Escape");
         primaryStage.setResizable(false);
-        projectileManager = new ProjectileManager();
+        projectileManager = new ProjectileManager(this); // Передаём this
         playerInventory = new Inventory();
 
         try {
@@ -101,19 +100,43 @@ public class Main extends Application {
 
         player = new Player((double) level.getStartX(), (double) level.getStartY(), level,
                 bulletImage, laserImage, rocketImage,
-                playerLeft, playerRight, playerInventory);
+                playerLeft, playerRight, playerInventory, projectileManager);
         player.setHealth(currentHealth);
         player.setActiveWeapon(currentWeapon);
         player.setScore(currentScore);
 
         projectileManager.setTiles(level.getTiles());
+        projectileManager.setEnemies(level.getEnemies());
+        projectileManager.setPlayer(player);
         portal = new Portal(level.getPortalX(), level.getPortalY());
-        enemyManager = new EnemyManager();
+        enemyManager = new EnemyManager(this); // Передаём this
         for (Enemy enemy : level.getEnemies()) {
             enemyManager.addEnemy(enemy);
         }
         if (gameScene != null) {
             updateGameScene();
+        }
+    }
+
+    public void loseLife(String reason) {
+        System.out.println(reason + ". Осталось жизней: " + (lives - 1));
+        lives--;
+
+        stopGameLoop();
+
+        if (lives <= 0) {
+            backgroundMusic.stop();
+            showLoseScreen();
+        } else {
+            new Thread(() -> {
+                try {
+                    Thread.sleep(DEATH_DELAY);
+                } catch (InterruptedException ignored) {}
+                javafx.application.Platform.runLater(() -> {
+                    loadLevel(levelIndex);
+                    gameLoop.start();
+                });
+            }).start();
         }
     }
 
@@ -169,33 +192,19 @@ public class Main extends Application {
         if (player.getActiveWeapon() != null) {
             gc.fillText("Оружие: " + player.getActiveWeapon(), 10, 50);
         }
+        // Полоска здоровья игрока
+        gc.setFill(Color.RED);
+        double healthBarWidth = 100 * ((double) player.getHealth() / 100);
+        gc.fillRect(10, 100, healthBarWidth, 10);
+        gc.setStroke(Color.BLACK);
+        gc.strokeRect(10, 100, 100, 10);
+        gc.setFill(Color.WHITE);
+        gc.fillText("HP: " + player.getHealth(), 120, 108);
     }
 
     private void stopGameLoop() {
         if (gameLoop != null) {
             gameLoop.stop();
-        }
-    }
-
-    private void loseLife(String reason) {
-        System.out.println(reason + ". Осталось жизней: " + (lives - 1));
-        lives--;
-
-        stopGameLoop();
-
-        if (lives <= 0) {
-            backgroundMusic.stop();
-            showLoseScreen();
-        } else {
-            new Thread(() -> {
-                try {
-                    Thread.sleep(DEATH_DELAY);
-                } catch (InterruptedException ignored) {}
-                javafx.application.Platform.runLater(() -> {
-                    loadLevel(levelIndex);
-                    gameLoop.start();
-                });
-            }).start();
         }
     }
 
@@ -212,7 +221,7 @@ public class Main extends Application {
         winText.setX(40);
         winText.setY(100);
 
-        Button restartButton = new Button("🔁 Начать заново");
+        main.Button restartButton = new main.Button("🔁 Начать заново");
         restartButton.setLayoutX(80);
         restartButton.setLayoutY(150);
         restartButton.setOnAction(e -> {
@@ -220,7 +229,7 @@ public class Main extends Application {
             restartGame();
         });
 
-        Button exitButton = new Button("🚪 Выйти");
+        main.Button exitButton = new main.Button("🚪 Выйти");
         exitButton.setLayoutX(230);
         exitButton.setLayoutY(150);
         exitButton.setOnAction(e -> System.exit(0));
@@ -243,7 +252,7 @@ public class Main extends Application {
         loseText.setX(30);
         loseText.setY(100);
 
-        Button restartButton = new Button("🔁 Начать заново");
+        main.Button restartButton = new main.Button("🔁 Начать заново");
         restartButton.setLayoutX(80);
         restartButton.setLayoutY(150);
         restartButton.setOnAction(e -> {
@@ -251,7 +260,7 @@ public class Main extends Application {
             restartGame();
         });
 
-        Button exitButton = new Button("🚪 Выйти");
+        main.Button exitButton = new main.Button("🚪 Выйти");
         exitButton.setLayoutX(230);
         exitButton.setLayoutY(150);
         exitButton.setOnAction(e -> System.exit(0));
@@ -307,7 +316,7 @@ public class Main extends Application {
 
             gameScene.setOnKeyReleased(e -> keysPressed.remove(e.getCode()));
 
-            Button pauseButton = new Button("⏸ Пауза");
+            main.Button pauseButton = new main.Button("⏸ Пауза");
             pauseButton.setLayoutX(WIDTH - 90);
             pauseButton.setLayoutY(10);
             pauseButton.setOnAction(e -> {
@@ -367,7 +376,7 @@ public class Main extends Application {
         title.setX(250);
         title.setY(150);
 
-        Button startButton = new Button("▶ Начать игру");
+        main.Button startButton = new main.Button("▶ Начать игру");
         startButton.setLayoutX(330);
         startButton.setLayoutY(220);
         startButton.setOnAction(e -> {
@@ -376,12 +385,12 @@ public class Main extends Application {
             gameLoop.start();
         });
 
-        Button exitButton = new Button("❌ Выйти");
+        main.Button exitButton = new main.Button("❌ Выйти");
         exitButton.setLayoutX(345);
         exitButton.setLayoutY(270);
         exitButton.setOnAction(e -> System.exit(0));
 
-        Button settingsButton = new Button("⚙ Настройки");
+        main.Button settingsButton = new main.Button("⚙ Настройки");
         settingsButton.setLayoutX(330);
         settingsButton.setLayoutY(320);
         settingsButton.setOnAction(e -> showSettingsMenu(stage));
@@ -406,7 +415,7 @@ public class Main extends Application {
         settingsTitle.setX(300);
         settingsTitle.setY(100);
 
-        Button soundButton = new Button(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
+        main.Button soundButton = new main.Button(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
         soundButton.setLayoutX(300);
         soundButton.setLayoutY(150);
         soundButton.setOnAction(e -> {
@@ -425,7 +434,7 @@ public class Main extends Application {
             soundButton.setText(isSoundMuted ? "🔊 Включить звук" : "🔇 Выключить звук");
         });
 
-        Button musicButton = new Button(isMusicMuted ? "🎶 Включить музыку" : "🔇 Выключить музыку");
+        main.Button musicButton = new main.Button(isMusicMuted ? "🎶 Включить музыку" : "🔇 Выключить музыку");
         musicButton.setLayoutX(300);
         musicButton.setLayoutY(200);
         musicButton.setOnAction(e -> {
@@ -438,7 +447,7 @@ public class Main extends Application {
             musicButton.setText(isMusicMuted ? "🎶 Включить музыку" : "🔇 Выключить музыку");
         });
 
-        Button backButton = new Button("↩ Назад");
+        main.Button backButton = new main.Button("↩ Назад");
         backButton.setLayoutX(350);
         backButton.setLayoutY(270);
         backButton.setOnAction(e -> stage.setScene(menuScene));
@@ -484,7 +493,7 @@ public class Main extends Application {
             itemLabel.setY(150 + i * 30);
             root.getChildren().add(itemLabel);
 
-            Button useButton = new Button("Использовать");
+            main.Button useButton = new main.Button("Использовать");
             useButton.setLayoutX(500);
             useButton.setLayoutY(130 + i * 30);
             int index = i;
@@ -499,7 +508,7 @@ public class Main extends Application {
             root.getChildren().add(useButton);
         }
 
-        Button backButton = new Button("↩ Назад");
+        main.Button backButton = new Button("↩ Назад");
         backButton.setLayoutX(350);
         backButton.setLayoutY(HEIGHT - 50);
         backButton.setOnAction(e -> {

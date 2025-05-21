@@ -2,25 +2,41 @@ package main;
 
 import javafx.scene.canvas.GraphicsContext;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class EnemyManager {
     private List<Enemy> enemies = new ArrayList<>();
+    private Main game; // Ссылка на Main
+
+    public EnemyManager(Main game) {
+        this.game = game;
+    }
 
     public void addEnemy(Enemy enemy) {
         enemies.add(enemy);
     }
 
     public void update(Player player, List<Tile> tiles) {
-        for (Enemy enemy : enemies) {
+        Iterator<Enemy> iterator = enemies.iterator();
+        while (iterator.hasNext()) {
+            Enemy enemy = iterator.next();
+            if (enemy.isDead()) {
+                iterator.remove();
+                continue;
+            }
             enemy.update(player, tiles);
             // Проверка столкновения с игроком
-            if (player.getX() + player.getWidth() > enemy.getX() &&
+            if (!enemy.isDead() &&
+                    player.getX() + player.getWidth() > enemy.getX() &&
                     player.getX() < enemy.getX() + enemy.getWidth() &&
                     player.getY() + player.getHeight() > enemy.getY() &&
                     player.getY() < enemy.getY() + enemy.getHeight()) {
-                // Игрок получает урон
-                // Вызывать loseLife из Main
+                player.setHealth(player.getHealth() - 10); // Урон от контакта
+                System.out.println("Игрок получил урон от врага. Здоровье: " + player.getHealth());
+                if (player.getHealth() <= 0) {
+                    game.loseLife("Убит врагом");
+                }
             }
         }
     }
@@ -29,5 +45,9 @@ public class EnemyManager {
         for (Enemy enemy : enemies) {
             enemy.render(gc);
         }
+    }
+
+    public List<Enemy> getEnemies() {
+        return enemies;
     }
 }

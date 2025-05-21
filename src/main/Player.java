@@ -51,7 +51,8 @@ public class Player {
 
     public Player(double startX, double startY, Level level,
                   Image bulletImage, Image laserImage, Image rocketImage,
-                  Image playerImageLeft, Image playerImageRight, Inventory inventory) {
+                  Image playerImageLeft, Image playerImageRight, Inventory inventory,
+                  ProjectileManager projectileManager) {
         this.x = startX;
         this.y = startY;
         this.level = level;
@@ -62,7 +63,7 @@ public class Player {
         this.bulletImage = bulletImage;
         this.laserImage = laserImage;
         this.rocketImage = rocketImage;
-        this.projectileManager = new ProjectileManager();
+        this.projectileManager = projectileManager; // Используем переданный ProjectileManager
         this.jumpSound = new AudioClip(getClass().getResource("/sounds/jump.wav").toString());
         this.projectileManager.setTiles(this.tiles);
         this.inventory = inventory != null ? inventory : new Inventory();

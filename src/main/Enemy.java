@@ -2,6 +2,7 @@ package main;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
+import javafx.scene.paint.Color;
 
 import java.util.List;
 
@@ -14,6 +15,8 @@ public abstract class Enemy {
     protected double patrolRange = 100;
     protected double initialX;
     protected boolean facingRight = true;
+    protected int health = 50; // Начальное здоровье врага
+    protected boolean isDead = false; // Флаг смерти
 
     public Enemy(double x, double y, Image image) {
         this.x = x;
@@ -25,6 +28,7 @@ public abstract class Enemy {
     }
 
     public void update(Player player, List<Tile> tiles) {
+        if (isDead) return; // Не обновляем мёртвого врага
         switch (state) {
             case PATROL:
                 patrol();
@@ -70,12 +74,29 @@ public abstract class Enemy {
         return false;
     }
 
+    public void takeDamage(int damage) {
+        health -= damage;
+        if (health <= 0) {
+            isDead = true;
+            System.out.println("Враг убит на позиции: (" + x + ", " + y + ")");
+        }
+    }
+
     public void render(GraphicsContext gc) {
-        gc.drawImage(image, x, y, width, height);
+        if (!isDead) {
+            gc.drawImage(image, x, y, width, height);
+            // Отображение HP над врагом
+            gc.setFill(Color.RED);
+            double healthBarWidth = 30 * ((double) health / 50);
+            gc.fillRect(x, y - 10, healthBarWidth, 5);
+            gc.setStroke(Color.BLACK);
+            gc.strokeRect(x, y - 10, 30, 5);
+        }
     }
 
     public double getX() { return x; }
     public double getY() { return y; }
     public double getWidth() { return width; }
     public double getHeight() { return height; }
+    public boolean isDead() { return isDead; }
 }
